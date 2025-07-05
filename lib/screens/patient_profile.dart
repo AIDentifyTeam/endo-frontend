@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:endo_frontend/models/patient.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
 
 class PatientProfileScreen extends StatelessWidget {
-  const PatientProfileScreen({super.key});
+  final Patient patient;
 
-  final Map<String, dynamic> patient = const {
-    'name': 'John Doe',
-    'age': 29,
-    'phone': '(555) 123-4567',
-    'email': 'john.doe@email.com',
-  };
+  const PatientProfileScreen({super.key, required this.patient});
 
   final List<Map<String, dynamic>> visits = const [
     {
@@ -84,7 +80,7 @@ class PatientProfileScreen extends StatelessWidget {
   Widget _buildPatientCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, // ✅ changed from light blue to white
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -107,10 +103,10 @@ class PatientProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildInfoRow(Icons.person, patient['name']),
-          _buildInfoRow(Icons.cake, 'Age: ${patient['age']}'),
-          _buildInfoRow(Icons.phone, patient['phone']),
-          _buildInfoRow(Icons.email, patient['email']),
+          _buildInfoRow(Icons.person, '${patient.firstName} ${patient.lastName}'),
+          _buildInfoRow(Icons.cake, 'Age: ${patient.age}'),
+          _buildInfoRow(Icons.phone, patient.phone),
+          _buildInfoRow(Icons.email, patient.email),
         ],
       ),
     );
@@ -138,7 +134,7 @@ class PatientProfileScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final visit = visits[index];
         return Card(
-          color: Colors.white, // ✅ changed from light pink to white
+          color: Colors.white,
           elevation: 1,
           margin: const EdgeInsets.only(bottom: 12),
           shape: RoundedRectangleBorder(

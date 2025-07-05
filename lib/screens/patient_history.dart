@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
+import 'package:endo_frontend/models/patient.dart';
+import '../routes.dart';
 
 class PatientSelectionPage extends StatefulWidget {
   const PatientSelectionPage({super.key});
@@ -184,8 +186,24 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
                                 ],
                               ),
                               onTap: () {
-                                Navigator.of(context).pushNamed('/patient_profile');
+                                final selectedPatient = Patient(
+                                  id: patient['id'],
+                                  firstName: patient['firstName'],
+                                  lastName: patient['lastName'],
+                                  age: patient['age'],
+                                  phone: patient['phone'],
+                                  email: patient['email'],
+                                  lastVisit: patient['lastVisit'],
+                                );
+
+                                Navigator.of(context).pushNamed(
+                                  Routes.patientProfile,
+                                  arguments: selectedPatient,
+                                );
                               },
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           );
                         },

@@ -1,3 +1,4 @@
+import 'package:endo_frontend/models/patient.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:flutter/material.dart';
@@ -73,8 +74,6 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                               ),
                             ),
                             const SizedBox(height: 24),
-
-                            // Name
                             Row(
                               children: [
                                 Expanded(
@@ -99,8 +98,6 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
-
-                            // ID
                             TextFormField(
                               controller: _idController,
                               decoration: const InputDecoration(
@@ -109,8 +106,6 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-
-                            // Phone & Email
                             TextFormField(
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
@@ -129,8 +124,6 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-
-                            // DOB & Sex
                             Row(
                               children: [
                                 Expanded(
@@ -185,8 +178,6 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                               ],
                             ),
                             const SizedBox(height: 24),
-
-                            // Save Button
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
@@ -202,7 +193,23 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                                 ),
                                 onPressed: () {
                                   if (_formKey.currentState!.validate()) {
-                                    Navigator.pushNamed(context, Routes.patientProfile);
+                                    final newPatient = Patient(
+                                      id: _idController.text,
+                                      firstName: _firstNameController.text,
+                                      lastName: _lastNameController.text,
+                                      age: _selectedDate != null
+                                          ? DateTime.now().year -
+                                              _selectedDate!.year
+                                          : 0,
+                                      phone: _phoneController.text,
+                                      email: _emailController.text,
+                                      lastVisit: DateTime.now().toIso8601String().split('T').first, // today's date
+                                    );
+                                    Navigator.pushNamed(
+                                      context,
+                                      Routes.patientProfile,
+                                      arguments: newPatient,
+                                    );
                                   }
                                 },
                               ),

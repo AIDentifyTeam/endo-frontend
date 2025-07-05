@@ -4,7 +4,6 @@ import 'screens/new_diagnosis.dart';
 import 'screens/new_patient.dart';
 import 'screens/patient_history.dart';
 import 'screens/research_papers.dart';
-import 'screens/patient_profile.dart';
 
 class Routes {
   static const login = '/';
@@ -22,6 +21,5 @@ class Routes {
     newPatient: (ctx) => NewPatientScreen(),
     patientHistory: (ctx) => PatientSelectionPage(),
     research: (ctx) => ResearchPapersScreen(),
-    patientProfile: (ctx) => PatientProfileScreen(),
   };
 }
