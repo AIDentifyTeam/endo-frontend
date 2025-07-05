@@ -53,6 +53,7 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: Card(
+                    color: Colors.white,
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),

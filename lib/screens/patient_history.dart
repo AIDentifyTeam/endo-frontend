@@ -67,137 +67,145 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       drawer: const MainDrawer(),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFEBF4FF), Color(0xFFFFF1F1)],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              AppHeader(
-                title: 'Patient History',
-                subtitle: 'Browse and manage all previous patient visits',
-                icon: Icons.history,
-                searchController: _searchController,
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              decoration: InputDecoration(
-                                hintText: 'Search by name or ID',
-                                prefixIcon: const Icon(Icons.search),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                filled: true,
-                                fillColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            AppHeader(
+              title: 'Patient History',
+              subtitle: 'Browse and manage all previous patient visits',
+              icon: Icons.history,
+              searchController: _searchController,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search by name or ID',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              onChanged: (value) {
-                                setState(() {});
-                              },
+                              filled: true,
+                              fillColor: Colors.white,
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          DropdownButton<String>(
-                            value: _sortBy,
-                            items: const [
-                              DropdownMenuItem(value: 'name', child: Text('Sort by Name')),
-                              DropdownMenuItem(value: 'id', child: Text('Sort by ID')),
-                              DropdownMenuItem(value: 'age', child: Text('Sort by Age')),
-                              DropdownMenuItem(value: 'lastVisit', child: Text('Sort by Last Visit')),
-                            ],
                             onChanged: (value) {
-                              setState(() {
-                                _sortBy = value!;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ListView.separated(
-                            itemCount: filteredPatients.length,
-                            separatorBuilder: (context, index) => const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final patient = filteredPatients[index];
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.blue[100],
-                                  child: Text(
-                                    patient['firstName'][0] + patient['lastName'][0],
-                                    style: TextStyle(
-                                      color: Colors.blue[900],
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                title: Text('${patient['firstName']} ${patient['lastName']}'),
-                                subtitle: Text('ID: ${patient['id']} | Age: ${patient['age']}'),
-                                trailing: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'Last Visit',
-                                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                                    ),
-                                    Text(
-                                      patient['lastVisit'],
-                                      style: const TextStyle(fontWeight: FontWeight.w500),
-                                    ),
-                                  ],
-                                ),
-                                onTap: () {
-                                  // Navigate to patient profile or visit history
-                                },
-                              );
+                              setState(() {});
                             },
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.person_add),
-                          label: const Text('New Patient'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blueAccent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(
+                        const SizedBox(width: 16),
+                        Theme(
+                          data: Theme.of(context).copyWith(
+                            canvasColor: Colors.white, // dropdown background
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _sortBy,
+                                icon: const Icon(Icons.arrow_drop_down),
+                                items: const [
+                                  DropdownMenuItem(value: 'name', child: Text('Sort by Name')),
+                                  DropdownMenuItem(value: 'id', child: Text('Sort by ID')),
+                                  DropdownMenuItem(value: 'age', child: Text('Sort by Age')),
+                                  DropdownMenuItem(value: 'lastVisit', child: Text('Sort by Last Visit')),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _sortBy = value!;
+                                  });
+                                },
+                              ),
                             ),
                           ),
-                          onPressed: () {
-                            Navigator.of(context).pushNamed('/new_patient');
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: Card(
+                        color: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListView.separated(
+                          itemCount: filteredPatients.length,
+                          separatorBuilder: (context, index) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final patient = filteredPatients[index];
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.blue[100],
+                                child: Text(
+                                  patient['firstName'][0] + patient['lastName'][0],
+                                  style: TextStyle(
+                                    color: Colors.blue[900],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              title: Text('${patient['firstName']} ${patient['lastName']}'),
+                              subtitle: Text('ID: ${patient['id']} | Age: ${patient['age']}'),
+                              trailing: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Last Visit',
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                  ),
+                                  Text(
+                                    patient['lastVisit'],
+                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                              onTap: () {
+                                // TODO: Navigate to patient profile or visit details
+                              },
+                            );
                           },
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.person_add),
+                        label: const Text('New Patient'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pushNamed('/new_patient');
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
