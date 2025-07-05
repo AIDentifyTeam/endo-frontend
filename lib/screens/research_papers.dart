@@ -1,3 +1,5 @@
+import 'package:endo_frontend/widgets/main_drawer.dart';
+import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:flutter/material.dart';
 
 class ResearchPapersScreen extends StatelessWidget {
@@ -6,8 +8,44 @@ class ResearchPapersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     return Scaffold(
-      appBar: AppBar(title: Text('Research Papers')),
-      body: Center(child: Text('List of papers goes here')),
+      backgroundColor: const Color(0xFFF8FAFC),
+      drawer: const MainDrawer(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFEBF4FF),
+              Color(0xFFFFFFFF),
+              Color(0xFFEEF2FF),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              AppHeader(
+                title: 'Research Papers',
+                subtitle: 'Latest publications from IEJ and JOE',
+                icon: Icons.article,
+                searchController: null, // ✅ safely passed as optional
+              ),
+              const Expanded(
+                child: Center(
+                  child: Text(
+                    'List of papers goes here',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.blueGrey,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

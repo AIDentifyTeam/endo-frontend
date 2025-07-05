@@ -1,4 +1,8 @@
+import 'package:endo_frontend/widgets/main_drawer.dart';
+import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:flutter/material.dart';
+
+
 
 class MainDashboard extends StatefulWidget {
   const MainDashboard({super.key});
@@ -63,6 +67,7 @@ class _MainDashboardState extends State<MainDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFF8FAFC),
+      drawer: const MainDrawer(),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -78,7 +83,12 @@ class _MainDashboardState extends State<MainDashboard> {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
+              AppHeader(
+                title: 'EndoDiag Pro',
+                subtitle: 'Advanced Endodontic Diagnosis System',
+                icon: Icons.favorite,
+                searchController: _searchController,
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.all(16),
@@ -115,145 +125,6 @@ class _MainDashboardState extends State<MainDashboard> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.favorite, color: Colors.white, size: 24),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'EndoDiag Pro',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2563EB),
-                  ),
-                ),
-                Text(
-                  'Advanced Endodontic Diagnosis System',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 200,
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search patients...',
-                prefixIcon: Icon(Icons.search, size: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Color(0xFF2563EB)),
-                ),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-            ),
-          ),
-          SizedBox(width: 12),
-          Stack(
-            children: [
-              IconButton(
-                icon: Icon(Icons.notifications_outlined),
-                onPressed: () {},
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '3',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            icon: Icon(Icons.settings_outlined),
-            onPressed: () {},
-          ),
-          SizedBox(width: 8),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Color(0xFF2563EB),
-                  child: Text(
-                    'DR',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'Dr. Smith',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

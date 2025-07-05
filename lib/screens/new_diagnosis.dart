@@ -1,3 +1,4 @@
+import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:flutter/material.dart';
 import '../routes.dart';
 
@@ -8,6 +9,7 @@ class NewDiagnosisScreen extends StatelessWidget {
   Widget build(BuildContext ctx) {
     return Scaffold(
       appBar: AppBar(title: Text('New Diagnosis')),
+      drawer: const MainDrawer(),
       body: Padding(
         padding: EdgeInsets.all(24),
         child: Column(
