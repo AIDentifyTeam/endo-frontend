@@ -1,6 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
-import 'package:flutter/material.dart';
 
 class PatientSelectionPage extends StatefulWidget {
   const PatientSelectionPage({super.key});
@@ -104,7 +104,7 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
                         const SizedBox(width: 16),
                         Theme(
                           data: Theme.of(context).copyWith(
-                            canvasColor: Colors.white, // dropdown background
+                            canvasColor: Colors.white,
                           ),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -136,76 +136,84 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
                     ),
                     const SizedBox(height: 16),
                     Expanded(
-                      child: Card(
-                        color: Colors.white,
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListView.separated(
-                          itemCount: filteredPatients.length,
-                          separatorBuilder: (context, index) => const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final patient = filteredPatients[index];
-                            return ListTile(
+                      child: ListView.separated(
+                        itemCount: filteredPatients.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 1),
+                        itemBuilder: (context, index) {
+                          final patient = filteredPatients[index];
+                          return Card(
+                            color: Colors.white,
+                            elevation: 1,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               leading: CircleAvatar(
-                                backgroundColor: Colors.blue[100],
+                                backgroundColor: const Color(0xFF2563EB),
                                 child: Text(
                                   patient['firstName'][0] + patient['lastName'][0],
-                                  style: TextStyle(
-                                    color: Colors.blue[900],
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: const TextStyle(color: Colors.white),
                                 ),
                               ),
-                              title: Text('${patient['firstName']} ${patient['lastName']}'),
-                              subtitle: Text('ID: ${patient['id']} | Age: ${patient['age']}'),
+                              title: Text(
+                                '${patient['firstName']} ${patient['lastName']}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'ID: ${patient['id']}  •  Age: ${patient['age']}',
+                                style: const TextStyle(fontSize: 14),
+                              ),
                               trailing: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text(
+                                  const Text(
                                     'Last Visit',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                    style: TextStyle(fontSize: 12, color: Colors.grey),
                                   ),
                                   Text(
                                     patient['lastVisit'],
-                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ],
                               ),
                               onTap: () {
-                                // TODO: Navigate to patient profile or visit details
+                                Navigator.of(context).pushNamed('/patient_profile');
                               },
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.person_add),
-                        label: const Text('New Patient'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueAccent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.of(context).pushNamed('/new_patient');
+                            ),
+                          );
                         },
                       ),
                     ),
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),
             ),
           ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).pushNamed('/new_patient');
+        },
+        icon: const Icon(Icons.person_add, color: Colors.white),
+        label: const Text(
+          'New Patient',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: const Color(0xFF2563EB),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
         ),
       ),
     );

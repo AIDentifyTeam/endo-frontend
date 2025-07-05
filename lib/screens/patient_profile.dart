@@ -30,51 +30,37 @@ class PatientProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       drawer: const MainDrawer(),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFEBF4FF),
-              Color(0xFFFFFFFF),
-              Color(0xFFEEF2FF),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const AppHeader(
-                title: 'Patient Profile',
-                subtitle: 'Details and Visit History',
-                icon: Icons.person,
-                
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildPatientCard(),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Visit History',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E3A8A),
-                        ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const AppHeader(
+              title: 'Patient Profile',
+              subtitle: 'Details and Visit History',
+              icon: Icons.person,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildPatientCard(),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Visit History',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
                       ),
-                      const SizedBox(height: 12),
-                      Expanded(child: _buildVisitList()),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(child: _buildVisitList()),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -98,12 +84,12 @@ class PatientProfileScreen extends StatelessWidget {
   Widget _buildPatientCard() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
+        color: Colors.white, // ✅ changed from light blue to white
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
             offset: const Offset(0, 4),
           ),
         ],
@@ -152,6 +138,7 @@ class PatientProfileScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final visit = visits[index];
         return Card(
+          color: Colors.white, // ✅ changed from light pink to white
           elevation: 1,
           margin: const EdgeInsets.only(bottom: 12),
           shape: RoundedRectangleBorder(

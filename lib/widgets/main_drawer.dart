@@ -67,7 +67,7 @@ class MainDrawer extends StatelessWidget {
               leading: Icon(Icons.logout),
               title: Text('Logout'),
               onTap: () {
-                // TODO: Add logout logic
+                Navigator.pushReplacementNamed(context, '/');
               },
             ),
           ],
