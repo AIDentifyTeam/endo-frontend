@@ -1,3 +1,4 @@
+import 'package:endo_frontend/screens/diagnosis_result.dart';
 import 'package:flutter/material.dart';
 import 'package:endo_frontend/models/patient.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
@@ -246,7 +247,23 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // TODO: Show visit detail screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DiagnosisResultScreen(
+                    patientName: '${_firstNameController.text} ${_lastNameController.text}',
+                    visitDate: visit['date'],
+                    toothNumber: visit['tooth'],
+                    toothImage: null, // You can later store and load real images
+                    answers: {
+                      'Cold Test': 'Lingering pain',
+                      'EPT': 'Responsive',
+                      'Percussion': 'Slightly sensitive',
+                      'Swelling': 'Absent',
+                    }, // Mocked answers
+                  ),
+                ),
+              );
             },
           ),
         );
