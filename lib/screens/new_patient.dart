@@ -48,7 +48,6 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                 title: 'New Patient',
                 subtitle: 'Create and register a new patient profile',
                 icon: Icons.person_add,
-                searchController: _searchController,
               ),
               Expanded(
                 child: SingleChildScrollView(

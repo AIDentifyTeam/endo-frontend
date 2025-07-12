@@ -29,7 +29,6 @@ class ResearchPapersScreen extends StatelessWidget {
                 title: 'Research Papers',
                 subtitle: 'Latest publications from IEJ and JOE',
                 icon: Icons.article,
-                searchController: null, // ✅ safely passed as optional
               ),
               const Expanded(
                 child: Center(

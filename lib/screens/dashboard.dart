@@ -87,7 +87,6 @@ class _MainDashboardState extends State<MainDashboard> {
                 title: 'EndoDiag Pro',
                 subtitle: 'Advanced Endodontic Diagnosis System',
                 icon: Icons.favorite,
-                searchController: _searchController,
               ),
               Expanded(
                 child: SingleChildScrollView(

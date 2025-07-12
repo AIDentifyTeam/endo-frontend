@@ -75,7 +75,13 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.pushNamed(
+            context,
+            '/new_diagnosis',
+            arguments: widget.patient,
+          );
+        },
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
           'Add Diagnosis',

@@ -4,6 +4,8 @@ import 'screens/new_diagnosis.dart';
 import 'screens/new_patient.dart';
 import 'screens/patient_history.dart';
 import 'screens/research_papers.dart';
+import 'screens/settings.dart';          
+import 'screens/notifications.dart';      
 
 class Routes {
   static const login = '/';
@@ -13,6 +15,8 @@ class Routes {
   static const patientHistory = '/patient_history';
   static const research = '/research_papers';
   static const patientProfile = '/patient_profile';
+  static const settings = '/settings';                  
+  static const notifications = '/notifications';        
 
   static final map = {
     login: (ctx) => LoginScreen(),
@@ -21,5 +25,7 @@ class Routes {
     newPatient: (ctx) => NewPatientScreen(),
     patientHistory: (ctx) => PatientSelectionPage(),
     research: (ctx) => ResearchPapersScreen(),
+    settings: (ctx) => SettingsScreen(),                
+    notifications: (ctx) => NotificationsScreen(),      
   };
 }

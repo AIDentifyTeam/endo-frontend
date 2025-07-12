@@ -1,6 +1,4 @@
-// lib/widgets/main_drawer.dart
 import 'package:flutter/material.dart';
-import '../routes.dart';
 
 class MainDrawer extends StatelessWidget {
   const MainDrawer({super.key});
@@ -9,10 +7,11 @@ class MainDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       child: Container(
-        color: Colors.white, // 👈 Change the background to pure white
+        color: Colors.white,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
+            /// Drawer Header
             DrawerHeader(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -25,47 +24,67 @@ class MainDrawer extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   CircleAvatar(
+                    radius: 24,
                     backgroundColor: Colors.white,
                     child: Icon(Icons.person, color: Color(0xFF4F46E5)),
                   ),
                   SizedBox(height: 8),
-                  Text('Dr. Smith', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text('Endodontist', style: TextStyle(color: Colors.white70)),
+                  Text(
+                    'Dr. Smith',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  Text(
+                    'Endodontist',
+                    style: TextStyle(color: Colors.white70),
+                  ),
                 ],
               ),
             ),
+
+            /// Navigation Items
             ListTile(
-              leading: Icon(Icons.dashboard),
-              title: Text('Dashboard'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/dashboard');
-              },
+              leading: const Icon(Icons.dashboard_outlined),
+              title: const Text('Dashboard'),
+              onTap: () => Navigator.pushReplacementNamed(context, '/dashboard'),
             ),
             ListTile(
-              leading: Icon(Icons.person_add),
-              title: Text('New Patient'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/new_patient');
-              },
+              leading: const Icon(Icons.person_add_alt_1),
+              title: const Text('New Patient'),
+              onTap: () => Navigator.pushReplacementNamed(context, '/new_patient'),
             ),
             ListTile(
-              leading: Icon(Icons.history),
-              title: Text('Patient History'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/patient_history');
-              },
+              leading: const Icon(Icons.history),
+              title: const Text('Patient History'),
+              onTap: () => Navigator.pushReplacementNamed(context, '/patient_history'),
             ),
             ListTile(
-              leading: Icon(Icons.book),
-              title: Text('Research Papers'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/research_papers');
-              },
+              leading: const Icon(Icons.book_outlined),
+              title: const Text('Research Papers'),
+              onTap: () => Navigator.pushReplacementNamed(context, '/research_papers'),
             ),
+
             const Divider(),
+
+          ListTile(
+            leading: Icon(Icons.notifications),
+            title: Text('Notifications'),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/notifications');
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.settings),
+            title: Text('Settings'),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/settings');
+            },
+          ),
+            const Divider(),
+
+            /// Logout
             ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Logout'),
+              leading: const Icon(Icons.logout),
+              title: const Text('Logout'),
               onTap: () {
                 Navigator.pushReplacementNamed(context, '/');
               },
@@ -76,3 +95,4 @@ class MainDrawer extends StatelessWidget {
     );
   }
 }
+// This widget can be used in your main app or any screen that requires a drawer.

@@ -76,7 +76,6 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
               title: 'Patient History',
               subtitle: 'Browse and manage all previous patient visits',
               icon: Icons.history,
-              searchController: _searchController,
             ),
             Expanded(
               child: Padding(

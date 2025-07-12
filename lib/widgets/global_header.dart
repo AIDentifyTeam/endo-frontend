@@ -4,14 +4,12 @@ class AppHeader extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
-  final TextEditingController? searchController;
 
   const AppHeader({
     super.key,
     required this.title,
     required this.subtitle,
     required this.icon,
-    this.searchController,
   });
 
   @override
@@ -30,6 +28,7 @@ class AppHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
+          /// Drawer Button
           Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu, color: Color(0xFF2563EB)),
@@ -38,7 +37,10 @@ class AppHeader extends StatelessWidget {
               },
             ),
           ),
+
           const SizedBox(width: 8),
+
+          /// Gradient Icon
           Container(
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(
@@ -49,7 +51,10 @@ class AppHeader extends StatelessWidget {
             ),
             child: Icon(icon, color: Colors.white, size: 24),
           ),
+
           const SizedBox(width: 12),
+
+          /// Title + Subtitle
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,61 +77,8 @@ class AppHeader extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(
-            width: 200,
-            child: TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                hintText: 'Search patients...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF2563EB)),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () {},
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '3',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
+
+          /// User Info
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
