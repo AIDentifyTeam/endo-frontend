@@ -1,4 +1,4 @@
-import 'package:endo_frontend/models/patient.dart';
+import 'package:endo_frontend/services/api_service.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:flutter/material.dart';
@@ -16,10 +16,8 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
 
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
-  final _idController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
-  final _searchController = TextEditingController();
 
   DateTime? _selectedDate;
   String? _selectedSex;
@@ -44,7 +42,7 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              AppHeader(
+              const AppHeader(
                 title: 'New Patient',
                 subtitle: 'Create and register a new patient profile',
                 icon: Icons.person_add,
@@ -82,6 +80,8 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                                       labelText: 'First Name',
                                       border: OutlineInputBorder(),
                                     ),
+                                    validator: (value) =>
+                                        value == null || value.isEmpty ? 'Required' : null,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -92,17 +92,11 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                                       labelText: 'Last Name',
                                       border: OutlineInputBorder(),
                                     ),
+                                    validator: (value) =>
+                                        value == null || value.isEmpty ? 'Required' : null,
                                   ),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _idController,
-                              decoration: const InputDecoration(
-                                labelText: 'Patient ID',
-                                border: OutlineInputBorder(),
-                              ),
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
@@ -112,6 +106,8 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                                 labelText: 'Phone',
                                 border: OutlineInputBorder(),
                               ),
+                              validator: (value) =>
+                                  value == null || value.isEmpty ? 'Required' : null,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
@@ -121,6 +117,8 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                                 labelText: 'Email',
                                 border: OutlineInputBorder(),
                               ),
+                              validator: (value) =>
+                                  value == null || value.isEmpty ? 'Required' : null,
                             ),
                             const SizedBox(height: 12),
                             Row(
@@ -172,6 +170,8 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                                         _selectedSex = value;
                                       });
                                     },
+                                    validator: (value) =>
+                                        value == null || value.isEmpty ? 'Required' : null,
                                   ),
                                 ),
                               ],
@@ -185,30 +185,36 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blueAccent,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                                onPressed: () {
-                                  if (_formKey.currentState!.validate()) {
-                                    final newPatient = Patient(
-                                      id: _idController.text,
-                                      firstName: _firstNameController.text,
-                                      lastName: _lastNameController.text,
-                                      age: _selectedDate != null
-                                          ? DateTime.now().year -
-                                              _selectedDate!.year
-                                          : 0,
-                                      phone: _phoneController.text,
-                                      email: _emailController.text,
-                                      lastVisit: DateTime.now().toIso8601String().split('T').first, // today's date
-                                    );
-                                    Navigator.pushNamed(
-                                      context,
-                                      Routes.patientProfile,
-                                      arguments: newPatient,
-                                    );
+                                onPressed: () async {
+                                  if (_formKey.currentState!.validate() &&
+                                      _selectedDate != null &&
+                                      _selectedSex != null) {
+                                      final patient = await ApiService().createPatient(
+                                        firstName: _firstNameController.text.trim(),
+                                        lastName: _lastNameController.text.trim(),
+                                        email: _emailController.text.trim(),
+                                        phone: _phoneController.text.trim(),
+                                        sex: _selectedSex!,
+                                        birthDate: _selectedDate!.toIso8601String().split('T').first,
+                                      );
+
+                                      if (patient != null) {
+                                        Navigator.pushNamed(
+                                          context,
+                                          Routes.patientProfile,
+                                          arguments: patient,
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Failed to create patient')),
+                                        );
+                                      }
                                   }
                                 },
                               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:endo_frontend/services/api_service.dart';
 
-class AppHeader extends StatelessWidget {
+class AppHeader extends StatefulWidget {
   final String title;
   final String subtitle;
   final IconData icon;
@@ -11,6 +12,28 @@ class AppHeader extends StatelessWidget {
     required this.subtitle,
     required this.icon,
   });
+
+  @override
+  State<AppHeader> createState() => _AppHeaderState();
+}
+
+class _AppHeaderState extends State<AppHeader> {
+  String? doctorLastName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDoctorInfo();
+  }
+
+  Future<void> _loadDoctorInfo() async {
+    final profile = await ApiService().getCachedDoctorProfile();
+    if (profile != null && mounted) {
+      setState(() {
+        doctorLastName = profile['last_name'];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +72,7 @@ class AppHeader extends StatelessWidget {
               ),
               borderRadius: BorderRadius.all(Radius.circular(12)),
             ),
-            child: Icon(icon, color: Colors.white, size: 24),
+            child: Icon(widget.icon, color: Colors.white, size: 24),
           ),
 
           const SizedBox(width: 12),
@@ -60,7 +83,7 @@ class AppHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  widget.title,
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -68,7 +91,7 @@ class AppHeader extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  subtitle,
+                  widget.subtitle,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -78,7 +101,7 @@ class AppHeader extends StatelessWidget {
             ),
           ),
 
-          /// User Info
+          /// User Info (Dynamic)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -86,23 +109,27 @@ class AppHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
-              children: const [
+              children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: Color(0xFF2563EB),
+                  backgroundColor: const Color(0xFF2563EB),
                   child: Text(
-                    'DR',
-                    style: TextStyle(
+                    (doctorLastName != null && doctorLastName!.isNotEmpty)
+                        ? doctorLastName![0].toUpperCase()
+                        : 'D',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
-                  'Dr. Smith',
-                  style: TextStyle(
+                  (doctorLastName != null && doctorLastName!.isNotEmpty)
+                      ? 'Dr. $doctorLastName'
+                      : 'Dr.',
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),

@@ -6,9 +6,10 @@ import 'screens/patient_history.dart';
 import 'screens/research_papers.dart';
 import 'screens/settings.dart';          
 import 'screens/notifications.dart';      
-
+import 'screens/register.dart';
 class Routes {
   static const login = '/';
+  static const register = '/register';
   static const dashboard = '/dashboard';
   static const newDiagnosis = '/new_diagnosis';
   static const newPatient = '/new_patient';
@@ -20,6 +21,7 @@ class Routes {
 
   static final map = {
     login: (ctx) => LoginScreen(),
+    register: (ctx) => const RegisterScreen(),
     dashboard: (ctx) => MainDashboard(),
     newDiagnosis: (ctx) => NewDiagnosisScreen(),
     newPatient: (ctx) => NewPatientScreen(),
