@@ -4,13 +4,16 @@ class DiagnosisQuestion {
   final String text;
   final String help;
   final List<String> options;
+  final bool isOptional;
 
-  DiagnosisQuestion({
+  const DiagnosisQuestion({
     required this.id,
     required this.title,
     required this.text,
     required this.help,
     required this.options,
+    this.isOptional = false,
+
   });
 }
 
@@ -39,6 +42,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     text: 'How does the patient respond to heat stimulus?',
     help: 'A positive lingering response to heat may also indicate irreversible pulpitis.',
     options: ['Negative', 'Normal', 'Hypersensitive', 'Lingering Pain'],
+    isOptional: true,
   ),
   DiagnosisQuestion(
     id: 'ept',
@@ -46,6 +50,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     text: 'What is the pulp response to EPT?',
     help: 'Dry the tooth, apply toothpaste as conductor, and test on the middle third of the crown. No response may indicate pulp necrosis.',
     options: ['Negative', 'Positive'],
+    isOptional: true,
   ),
   DiagnosisQuestion(
     id: 'palpation',

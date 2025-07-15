@@ -42,6 +42,17 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   }
 
   void _nextPage() {
+    // Don't validate on the initial (tooth input) page
+    if (_currentPage > 0 && _currentPage <= diagnosisQuestions.length) {
+      final q = diagnosisQuestions[_currentPage - 1];
+      if (!q.isOptional && _answers[q.title] == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please answer: "${q.title}"')),
+        );
+        return;
+      }
+    }
+
     if (_currentPage < diagnosisQuestions.length) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -49,6 +60,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
       );
     }
   }
+
 
   void _previousPage() {
     if (_currentPage > 0) {
@@ -81,18 +93,17 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
           ),
         ),
       );
-      if (!mounted) return;
 
+      if (!mounted) return;
       if (result == 'refresh') {
         Navigator.pop(context, 'refresh');
       }
-      
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to submit: $e")),
       );
     } finally {
-      setState(() => _submitting = false);
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
@@ -206,7 +217,8 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(q.title,
+                    child: Text(
+                      '${q.title}${q.isOptional ? ' (Optional)' : ''}',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.indigo),
                     ),
                   ),
