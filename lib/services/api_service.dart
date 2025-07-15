@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:endo_frontend/models/patient.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -151,33 +152,38 @@ class ApiService {
     required String pulpDiagnosis,
     required String periapicalDisease,
     required String etiology,
+    File? toothImage, // <- New optional parameter
   }) async {
     final token = await storage.read(key: 'access');
-    final url = Uri.parse('$baseUrl/visits/');
+    final uri = Uri.parse('$baseUrl/visits/');
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'patient': patientId,
-        'tooth_number': toothNumber,
-        'answers': answers,
-        'pulp_diagnosis': pulpDiagnosis,
-        'periapical_disease': periapicalDisease,
-        'etiology': etiology,
-      }),
-    );
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields['patient'] = patientId.toString()
+      ..fields['tooth_number'] = toothNumber
+      ..fields['answers'] = jsonEncode(answers)
+      ..fields['pulp_diagnosis'] = pulpDiagnosis
+      ..fields['periapical_disease'] = periapicalDisease
+      ..fields['etiology'] = etiology;
+
+    if (toothImage != null) {
+      request.files.add(await http.MultipartFile.fromPath(
+        'tooth_image',
+        toothImage.path,
+      ));
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 201) {
       final json = jsonDecode(response.body);
-      return json['id']; // <-- return visitId
+      return json['id']; // return visitId
     } else {
       throw Exception('Failed to create visit: ${response.body}');
     }
   }
+
 
 
   Future<Map<String, dynamic>> fetchVisitById(int visitId) async {

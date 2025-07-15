@@ -82,6 +82,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         pulpDiagnosis: _answers['Pulp Diagnosis'] ?? '',
         periapicalDisease: _answers['Periapical Disease'] ?? '',
         etiology: _answers['Etiology'] ?? '',
+        toothImage: _selectedImage,
       );
 
       final result = await Navigator.push(

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
@@ -39,7 +38,6 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
       setState(() {
         isLoading = false;
       });
-      // Optional: Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load visit data')),
       );
@@ -80,14 +78,18 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                                   ],
                                 ),
                               ),
-                              if (visitData!['tooth_image'] != null)
+                              if (visitData!['tooth_image'] != null &&
+                                  visitData!['tooth_image'].toString().isNotEmpty)
                                 _buildSectionCard(
                                   title: 'Tooth Image',
                                   content: ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
-                                    child: Image.file(
-                                      File(visitData!['tooth_image']),
+                                    child: Image.network(
+                                        '${visitData!['tooth_image']}',
                                       height: 180,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          const Text('⚠️ Failed to load image'),
                                     ),
                                   ),
                                 ),
