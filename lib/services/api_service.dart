@@ -144,7 +144,7 @@ class ApiService {
       }
     }
 
-  Future<void> createVisit({
+  Future<int> createVisit({
     required int patientId,
     required String toothNumber,
     required Map<String, dynamic> answers,
@@ -171,9 +171,33 @@ class ApiService {
       }),
     );
 
-    if (response.statusCode != 201) {
+    if (response.statusCode == 201) {
+      final json = jsonDecode(response.body);
+      return json['id']; // <-- return visitId
+    } else {
       throw Exception('Failed to create visit: ${response.body}');
     }
   }
+
+
+  Future<Map<String, dynamic>> fetchVisitById(int visitId) async {
+    final token = await storage.read(key: 'access'); // Make sure this is correct
+    final url = Uri.parse('$baseUrl/visits/$visitId/'); // Must have trailing slash
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to fetch visit: ${response.statusCode} ${response.body}');
+    }
+  }
+
 }
 

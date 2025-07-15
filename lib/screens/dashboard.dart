@@ -12,7 +12,6 @@ class MainDashboard extends StatefulWidget {
 }
 
 class _MainDashboardState extends State<MainDashboard> {
-  final TextEditingController _searchController = TextEditingController();
 
   // Sample data
   final List<Map<String, dynamic>> recentPatients = [

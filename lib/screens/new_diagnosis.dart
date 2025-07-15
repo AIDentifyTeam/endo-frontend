@@ -63,27 +63,30 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     setState(() => _submitting = true);
 
     try {
-      await ApiService().createVisit(
+      final visitId = await ApiService().createVisit(
         patientId: _patient.id,
         toothNumber: _toothNumberController.text,
-        answers: _answers,
+        answers: _answers.map((k, v) => MapEntry(k, v.toString())),
         pulpDiagnosis: _answers['Pulp Diagnosis'] ?? '',
         periapicalDisease: _answers['Periapical Disease'] ?? '',
         etiology: _answers['Etiology'] ?? '',
       );
 
-      Navigator.pushReplacement(
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => DiagnosisResultScreen(
+            visitId: visitId,
             patientName: '${_patient.firstName} ${_patient.lastName}',
-            visitDate: DateTime.now().toIso8601String().split('T')[0],
-            toothNumber: _toothNumberController.text,
-            toothImage: _selectedImage,
-            answers: _answers.map((k, v) => MapEntry(k, v.toString())),
           ),
         ),
       );
+      if (!mounted) return;
+
+      if (result == 'refresh') {
+        Navigator.pop(context, 'refresh');
+      }
+      
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to submit: $e")),

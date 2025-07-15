@@ -1,6 +1,7 @@
-import 'package:endo_frontend/screens/diagnosis_result.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:endo_frontend/models/patient.dart';
+import 'package:endo_frontend/screens/diagnosis_result.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:endo_frontend/services/api_service.dart';
@@ -36,10 +37,18 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
   Future<void> fetchVisitHistory() async {
     final visits = await ApiService().fetchVisitHistory(widget.patient.id);
+
+    visits.sort((a, b) {
+      final dateA = DateTime.tryParse(a['visit_date'] ?? '') ?? DateTime(1900);
+      final dateB = DateTime.tryParse(b['visit_date'] ?? '') ?? DateTime(1900);
+      return dateB.compareTo(dateA); // 🔁 Sort descending
+    });
+
     setState(() {
       visitHistory = visits;
     });
   }
+
 
   int calculateAge(DateTime birthDate) {
     final now = DateTime.now();
@@ -89,12 +98,16 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pushNamed(
+        onPressed: () async {
+          final result = await Navigator.pushNamed(
             context,
             '/new_diagnosis',
             arguments: widget.patient,
           );
+
+          if (result == 'refresh') {
+            fetchVisitHistory(); // Reload the list after coming back
+          }
         },
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
@@ -215,10 +228,21 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   }
 
   Widget _buildVisitList() {
+    if (visitHistory.isEmpty) {
+      return const Center(
+        child: Text(
+          'No visit history exists.',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
     return ListView.builder(
       itemCount: visitHistory.length,
       itemBuilder: (context, index) {
         final visit = visitHistory[index];
+        final visitDate = DateTime.parse(visit['visit_date']).toLocal();
+        final formattedDate = DateFormat('yyyy-MM-dd – h:mm a').format(visitDate);
         return Card(
           color: Colors.white,
           elevation: 1,
@@ -227,10 +251,13 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
           child: ListTile(
             leading: CircleAvatar(
               backgroundColor: const Color(0xFF2563EB),
-              child: Text(visit['tooth_number'] ?? '-', style: const TextStyle(color: Colors.white)),
+              child: Text(
+                visit['tooth_number'] ?? '-',
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
             title: Text(
-              'Date: ${visit['visit_date']}',
+              'Date: $formattedDate',
               style: TextStyle(fontSize: 14, color: Colors.blueGrey[800], fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
@@ -238,19 +265,19 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               style: TextStyle(fontSize: 13, color: Colors.grey[700]),
             ),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              final shouldRefresh = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => DiagnosisResultScreen(
+                    visitId: visit['id'],
                     patientName: '${_firstNameController.text} ${_lastNameController.text}',
-                    visitDate: visit['visit_date'],
-                    toothNumber: visit['tooth_number'],
-                    toothImage: null,
-                    answers: Map<String, String>.from(visit['answers'] ?? {}),
                   ),
                 ),
               );
+              if (shouldRefresh == true) {
+                await fetchVisitHistory(); 
+              }
             },
           ),
         );
