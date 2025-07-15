@@ -188,7 +188,10 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.of(context).pushNamed('/new_patient'),
         icon: const Icon(Icons.person_add, color: Colors.white),
-        label: const Text('New Patient'),
+        label: const Text(
+          'New Patient',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF2563EB),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30),

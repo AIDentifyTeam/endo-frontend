@@ -1,10 +1,12 @@
 import 'dart:io';
-import 'package:endo_frontend/screens/diagnosis_result.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:endo_frontend/models/patient.dart';
+import 'package:endo_frontend/screens/diagnosis_result.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/data/diagnosis_questions.dart';
+import 'package:endo_frontend/services/api_service.dart';
 
 class NewDiagnosisScreen extends StatefulWidget {
   const NewDiagnosisScreen({super.key});
@@ -19,8 +21,16 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   final TextEditingController _toothNumberController = TextEditingController();
   File? _selectedImage;
-
   final Map<String, dynamic> _answers = {};
+  bool _submitting = false;
+
+  late Patient _patient;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _patient = ModalRoute.of(context)!.settings.arguments as Patient;
+  }
 
   void _pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -49,9 +59,38 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     }
   }
 
-  void _submitDiagnosis() {
-    print('Diagnosis submitted: $_answers');
-    // Add summary screen or storage logic later
+  Future<void> _submitDiagnosis() async {
+    setState(() => _submitting = true);
+
+    try {
+      await ApiService().createVisit(
+        patientId: _patient.id,
+        toothNumber: _toothNumberController.text,
+        answers: _answers,
+        pulpDiagnosis: _answers['Pulp Diagnosis'] ?? '',
+        periapicalDisease: _answers['Periapical Disease'] ?? '',
+        etiology: _answers['Etiology'] ?? '',
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DiagnosisResultScreen(
+            patientName: '${_patient.firstName} ${_patient.lastName}',
+            visitDate: DateTime.now().toIso8601String().split('T')[0],
+            toothNumber: _toothNumberController.text,
+            toothImage: _selectedImage,
+            answers: _answers.map((k, v) => MapEntry(k, v.toString())),
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to submit: $e")),
+      );
+    } finally {
+      setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -138,7 +177,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   }
 
   Widget _buildQuestionCard(DiagnosisQuestion q) {
-    int questionNumber = _currentPage; // Because page 0 is tooth/photo step
+    int questionNumber = _currentPage;
     int totalQuestions = diagnosisQuestions.length;
 
     return Center(
@@ -153,51 +192,27 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// Question Progress
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
                   'Question $questionNumber of $totalQuestions',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey),
                 ),
               ),
               const SizedBox(height: 12),
-
-              /// Question Title & Help
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      q.title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.indigo,
-                      ),
+                    child: Text(q.title,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.indigo),
                     ),
                   ),
-                  Tooltip(
-                    message: q.help,
-                    child: const Icon(Icons.info_outline, color: Colors.grey),
-                  ),
+                  Tooltip(message: q.help, child: const Icon(Icons.info_outline, color: Colors.grey)),
                 ],
               ),
-
               const SizedBox(height: 12),
-
-              /// Question Text
-              Text(
-                q.text,
-                style: const TextStyle(fontSize: 16, color: Colors.black87),
-              ),
-
+              Text(q.text, style: const TextStyle(fontSize: 16, color: Colors.black87)),
               const SizedBox(height: 16),
-
-              /// Options
               ...q.options.map((option) {
                 return RadioListTile(
                   title: Text(option),
@@ -210,10 +225,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                   },
                 );
               }).toList(),
-
               const SizedBox(height: 24),
-
-              /// Navigation Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -221,20 +233,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                   _buildNavigationButton(
                     _currentPage == diagnosisQuestions.length ? 'Finish' : 'Next',
                     _currentPage == diagnosisQuestions.length
-                        ? () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => DiagnosisResultScreen(
-                                  patientName: 'Dr. Smith', // You can make this dynamic later
-                                  visitDate: DateTime.now().toIso8601String().split('T')[0],
-                                  toothNumber: _toothNumberController.text,
-                                  toothImage: _selectedImage,
-                                  answers: _answers.map((key, value) => MapEntry(key.toString(), value.toString())),
-                                ),
-                              ),
-                            );
-                          }
+                        ? (_submitting ? null : () => _submitDiagnosis())
                         : _nextPage,
                   ),
                 ],
@@ -246,9 +245,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     );
   }
 
-
-
-  Widget _buildNavigationButton(String text, VoidCallback onPressed) {
+  Widget _buildNavigationButton(String label, VoidCallback? onPressed) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -258,7 +255,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
-      child: Text(text),
+      child: Text(label),
     );
   }
 }

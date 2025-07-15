@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:endo_frontend/models/patient.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
+import 'package:endo_frontend/services/api_service.dart';
 
 class PatientProfileScreen extends StatefulWidget {
   final Patient patient;
@@ -20,12 +21,8 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   late TextEditingController _lastNameController;
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
-  late int age;
 
-  final List<Map<String, dynamic>> visits = const [
-    {'tooth': '12', 'date': '2025-06-30', 'diagnosis': 'Pulpitis'},
-    {'tooth': '26', 'date': '2025-05-15', 'diagnosis': 'Necrotic Pulp'},
-  ];
+  List<Map<String, dynamic>> visitHistory = [];
 
   @override
   void initState() {
@@ -34,7 +31,23 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     _lastNameController = TextEditingController(text: widget.patient.lastName);
     _phoneController = TextEditingController(text: widget.patient.phone);
     _emailController = TextEditingController(text: widget.patient.email);
-    age = widget.patient.age;
+    fetchVisitHistory();
+  }
+
+  Future<void> fetchVisitHistory() async {
+    final visits = await ApiService().fetchVisitHistory(widget.patient.id);
+    setState(() {
+      visitHistory = visits;
+    });
+  }
+
+  int calculateAge(DateTime birthDate) {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month || (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
   }
 
   @override
@@ -95,6 +108,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   }
 
   Widget _buildPatientCard() {
+    final int age = calculateAge(DateTime.parse(widget.patient.birthDate));
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -135,9 +149,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
           isEditing
               ? _buildEditableField(Icons.person, _firstNameController, _lastNameController)
               : _buildInfoRow(Icons.person, '${_firstNameController.text} ${_lastNameController.text}'),
-          isEditing
-              ? _buildEditableAgeRow(Icons.cake)
-              : _buildInfoRow(Icons.cake, 'Age: $age'),
+          _buildInfoRow(Icons.cake, 'Age: $age'),
           isEditing
               ? _buildEditableSingleField(Icons.phone, _phoneController)
               : _buildInfoRow(Icons.phone, _phoneController.text),
@@ -184,26 +196,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     );
   }
 
-  Widget _buildEditableAgeRow(IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: Colors.blueGrey[700]),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Age'),
-            onChanged: (value) {
-              setState(() {
-                age = int.tryParse(value) ?? age;
-              });
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildEditableSingleField(IconData icon, TextEditingController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -224,9 +216,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
   Widget _buildVisitList() {
     return ListView.builder(
-      itemCount: visits.length,
+      itemCount: visitHistory.length,
       itemBuilder: (context, index) {
-        final visit = visits[index];
+        final visit = visitHistory[index];
         return Card(
           color: Colors.white,
           elevation: 1,
@@ -235,14 +227,14 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
           child: ListTile(
             leading: CircleAvatar(
               backgroundColor: const Color(0xFF2563EB),
-              child: Text(visit['tooth'], style: const TextStyle(color: Colors.white)),
+              child: Text(visit['tooth_number'] ?? '-', style: const TextStyle(color: Colors.white)),
             ),
             title: Text(
-              'Date: ${visit['date']}',
+              'Date: ${visit['visit_date']}',
               style: TextStyle(fontSize: 14, color: Colors.blueGrey[800], fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
-              'Tooth: ${visit['tooth']}  •  Diagnosis: ${visit['diagnosis']}',
+              'Tooth: ${visit['tooth_number']}  •  Diagnosis: ${visit['pulp_diagnosis']}',
               style: TextStyle(fontSize: 13, color: Colors.grey[700]),
             ),
             trailing: const Icon(Icons.chevron_right),
@@ -252,15 +244,10 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                 MaterialPageRoute(
                   builder: (_) => DiagnosisResultScreen(
                     patientName: '${_firstNameController.text} ${_lastNameController.text}',
-                    visitDate: visit['date'],
-                    toothNumber: visit['tooth'],
-                    toothImage: null, // You can later store and load real images
-                    answers: {
-                      'Cold Test': 'Lingering pain',
-                      'EPT': 'Responsive',
-                      'Percussion': 'Slightly sensitive',
-                      'Swelling': 'Absent',
-                    }, // Mocked answers
+                    visitDate: visit['visit_date'],
+                    toothNumber: visit['tooth_number'],
+                    toothImage: null,
+                    answers: Map<String, String>.from(visit['answers'] ?? {}),
                   ),
                 ),
               );

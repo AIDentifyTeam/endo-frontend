@@ -126,6 +126,54 @@ class ApiService {
     return [];
   }
 
+  Future<List<Map<String, dynamic>>> fetchVisitHistory(int patientId) async {
+      final token = await storage.read(key: 'access');
+      final response = await http.get(
+        Uri.parse('$baseUrl/visits/?patient=$patientId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = json.decode(response.body);
+        return jsonList.map((item) => Map<String, dynamic>.from(item)).toList();
+      } else {
+        throw Exception('Failed to fetch visit history');
+      }
+    }
+
+  Future<void> createVisit({
+    required int patientId,
+    required String toothNumber,
+    required Map<String, dynamic> answers,
+    required String pulpDiagnosis,
+    required String periapicalDisease,
+    required String etiology,
+  }) async {
+    final token = await storage.read(key: 'access');
+    final url = Uri.parse('$baseUrl/visits/');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'patient': patientId,
+        'tooth_number': toothNumber,
+        'answers': answers,
+        'pulp_diagnosis': pulpDiagnosis,
+        'periapical_disease': periapicalDisease,
+        'etiology': etiology,
+      }),
+    );
+
+    if (response.statusCode != 201) {
+      throw Exception('Failed to create visit: ${response.body}');
+    }
+  }
 }
 
