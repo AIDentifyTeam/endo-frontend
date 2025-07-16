@@ -22,7 +22,7 @@ class Routes {
   static final map = {
     login: (ctx) => LoginScreen(),
     register: (ctx) => const RegisterScreen(),
-    dashboard: (ctx) => MainDashboard(),
+    dashboard: (ctx) => MainDashboardScreen(),
     newDiagnosis: (ctx) => NewDiagnosisScreen(),
     newPatient: (ctx) => NewPatientScreen(),
     patientHistory: (ctx) => PatientSelectionPage(),

@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 
@@ -29,38 +32,63 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationsScreen> {
-  final List<NotificationItem> _notifications = [
-    NotificationItem(
-      id: '1',
-      title: 'New Case Review',
-      description: 'You have 2 new patient cases to review.',
-      type: 'New Case Review',
-      timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-    ),
-    NotificationItem(
-      id: '2',
-      title: 'System Update',
-      description: 'EndoDiag Pro updated to version 1.2.',
-      type: 'System Update',
-      timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
-      isRead: true,
-    ),
-    NotificationItem(
-      id: '3',
-      title: 'Reminder',
-      description: 'Submit report for patient John D.',
-      type: 'Reminder',
-      timestamp: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-  ];
+  final storage = const FlutterSecureStorage();
+  List<NotificationItem> _notifications = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    try {
+      final token = await storage.read(key: 'access');
+      final response = await http.get(
+        Uri.parse('http://127.0.0.1:8000/api/notification-status/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+
+        setState(() {
+          _notifications = data.map((json) {
+            final notif = json['notification'] ?? {};
+            return NotificationItem(
+              id: json['id']?.toString() ?? '',
+              title: notif['title'] ?? 'Untitled',
+              description: notif['description'] ?? '',
+              type: notif['category'] ?? 'notification',
+              timestamp: DateTime.tryParse(notif['created_at'] ?? '') ?? DateTime.now(),
+              isRead: json['is_read'] ?? false,
+            );
+          }).toList();
+
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load notifications');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading notifications: $e')),
+      );
+    }
+  }
 
   Icon _getIconForType(String type) {
-    switch (type) {
-      case 'New Case Review':
+    switch (type.toLowerCase()) {
+      case 'new_case_review':
         return const Icon(Icons.assignment_turned_in, color: Colors.blue);
-      case 'System Update':
+      case 'system_update':
         return const Icon(Icons.system_update_alt, color: Colors.green);
-      case 'Reminder':
+      case 'reminder':
         return const Icon(Icons.alarm, color: Colors.orange);
       default:
         return const Icon(Icons.notifications, color: Colors.grey);
@@ -82,81 +110,84 @@ class _NotificationScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: _notifications.length,
-                itemBuilder: (context, index) {
-                  final n = _notifications[index];
-
-                  return GestureDetector(
-                    onTap: () {
-                      if (!n.isRead) {
-                        setState(() {
-                          n.isRead = true;
-                        });
-                      }
-                    },
-                    child: Card(
-                      color: Colors.white,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _getIconForType(n.type),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _notifications.isEmpty
+                      ? const Center(child: Text('No notifications found.'))
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          itemCount: _notifications.length,
+                          itemBuilder: (context, index) {
+                            final n = _notifications[index];
+                            return GestureDetector(
+                              onTap: () {
+                                if (!n.isRead) {
+                                  setState(() {
+                                    n.isRead = true;
+                                  });
+                                }
+                              },
+                              child: Card(
+                                color: Colors.white,
+                                margin: const EdgeInsets.only(bottom: 12),
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        n.title,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                                      _getIconForType(n.type),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  n.title,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                if (!n.isRead)
+                                                  Container(
+                                                    width: 8,
+                                                    height: 8,
+                                                    decoration: const BoxDecoration(
+                                                      color: Colors.red,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              n.description,
+                                              style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              DateFormat('yyyy-MM-dd – HH:mm').format(n.timestamp),
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontStyle: FontStyle.italic,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(width: 6),
-                                      if (!n.isRead)
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
                                     ],
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    n.description,
-                                    style: const TextStyle(fontSize: 14, color: Colors.black87),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    DateFormat('yyyy-MM-dd – HH:mm').format(n.timestamp),
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontStyle: FontStyle.italic,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
-                          ],
+                            );
+                          },
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
             ),
           ],
         ),

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:endo_frontend/models/patient.dart';
+import 'package:endo_frontend/screens/notifications.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -15,6 +17,10 @@ class ApiService {
     final profile = await getDoctorProfile();
     if (profile != null) _cachedProfile = profile;
     return _cachedProfile;
+  }
+
+  void clearDoctorProfileCache() {
+    _cachedProfile = null;
   }
 
   Future<bool> login(String username, String password) async {
@@ -53,6 +59,52 @@ class ApiService {
     return response.statusCode == 201;
   }
 
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final token = await storage.read(key: 'access');
+    final response = await http.put(
+      Uri.parse('$baseUrl/change-password/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'current_password': currentPassword,
+        'new_password': newPassword,
+        'confirm_password': confirmPassword,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to change password.');
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    final token = await storage.read(key: 'access');
+    final response = await http.delete(
+      Uri.parse('$baseUrl/delete-account/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 204) {
+      return true; // Deletion success, caller should now logout
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to delete account.');
+    }
+  }
+
+
   Future<Map<String, dynamic>?> getDoctorProfile() async {
     final token = await storage.read(key: 'access');
     final response = await http.get(
@@ -69,10 +121,58 @@ class ApiService {
     return null;
   }
 
-  void logout() async {
+  Future<bool> updateDoctorProfile({
+    required String firstName,
+    required String lastName,
+    File? profileImage,
+  }) async {
+    final token = await storage.read(key: 'access');
+    final uri = Uri.parse('$baseUrl/profile/');
+
+    final request = http.MultipartRequest('PUT', uri);
+    request.headers['Authorization'] = 'Bearer $token';
+
+    request.fields['first_name'] = firstName;
+    request.fields['last_name'] = lastName;
+
+    if (profileImage != null) {
+      final fileStream = await http.MultipartFile.fromPath('profile_image', profileImage.path);
+      request.files.add(fileStream);
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    return response.statusCode == 200;
+  }
+
+
+  Future<void> logout() async {
+    final refresh = await storage.read(key: 'refresh');
+    final access = await storage.read(key: 'access');
+
+    if (refresh == null || access == null) return;
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/logout/'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $access',
+      },
+      body: jsonEncode({'refresh': refresh}),
+    );
+
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw Exception('Logout failed: ${response.statusCode}');
+    }
+  }
+
+
+  Future<void> clearTokens() async {
     await storage.delete(key: 'access');
     await storage.delete(key: 'refresh');
   }
+
 
   Future<Patient?> createPatient({
     required String firstName,
@@ -126,6 +226,27 @@ class ApiService {
 
     return [];
   }
+
+  Future<List<dynamic>?> getVisits() async {
+    final url = Uri.parse('$baseUrl/visits/');
+    final token = await storage.read(key: 'access');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      return jsonList.map((item) => Map<String, dynamic>.from(item)).toList();
+    } else {
+      throw Exception('Failed to fetch visit history');
+    }
+  }
+
 
   Future<List<Map<String, dynamic>>> fetchVisitHistory(int patientId) async {
       final token = await storage.read(key: 'access');
@@ -204,6 +325,35 @@ class ApiService {
       throw Exception('Failed to fetch visit: ${response.statusCode} ${response.body}');
     }
   }
+
+  Future<List<NotificationItem>> fetchNotifications() async {
+    final token = await storage.read(key: 'access');
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/notification-status/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) {
+        return NotificationItem(
+          id: json['id'].toString(),
+          title: json['title'] ?? 'Untitled',
+          description: json['description'] ?? '',
+          type: json['type'] ?? 'Notification',
+          timestamp: DateTime.parse(json['timestamp']),
+          isRead: json['is_read'] ?? false,
+        );
+      }).toList();
+    } else {
+      throw Exception('Failed to load notifications');
+    }
+  }
+
 
 }
 

@@ -108,7 +108,7 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
                               icon: const Icon(Icons.arrow_drop_down),
                               items: const [
                                 DropdownMenuItem(value: 'name', child: Text('Sort by Name')),
-                                DropdownMenuItem(value: 'id', child: Text('Sort by ID')),
+                                DropdownMenuItem(value: 'id', child: Text('Sort by Case ID')),
                                 DropdownMenuItem(value: 'age', child: Text('Sort by Age')),
                                 DropdownMenuItem(value: 'lastVisit', child: Text('Sort by Created Date')),
                               ],
@@ -150,7 +150,7 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
                                       ),
                                     ),
                                     subtitle: Text(
-                                      'ID: ${patient.id}  •  Age: ${patient.age}',
+                                      'Case ID: ${patient.id}  •  Age: ${patient.age}',
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                     trailing: Column(

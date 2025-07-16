@@ -19,6 +19,8 @@ class AppHeader extends StatefulWidget {
 
 class _AppHeaderState extends State<AppHeader> {
   String? doctorLastName;
+  String? profileImageUrl;
+  final String baseUrl = 'http://localhost:8000'; // update if deployed
 
   @override
   void initState() {
@@ -27,10 +29,16 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
   Future<void> _loadDoctorInfo() async {
-    final profile = await ApiService().getCachedDoctorProfile();
+    final profile = await ApiService().getDoctorProfile(); // avoid stale cache
     if (profile != null && mounted) {
+      final rawUrl = profile['profile_image'];
       setState(() {
         doctorLastName = profile['last_name'];
+        if (rawUrl != null && rawUrl.toString().isNotEmpty) {
+          profileImageUrl = rawUrl.toString().startsWith('http')
+              ? rawUrl
+              : '$baseUrl$rawUrl';
+        }
       });
     }
   }
@@ -101,7 +109,7 @@ class _AppHeaderState extends State<AppHeader> {
             ),
           ),
 
-          /// User Info (Dynamic)
+          /// User Info with Profile Picture
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -112,17 +120,22 @@ class _AppHeaderState extends State<AppHeader> {
               children: [
                 CircleAvatar(
                   radius: 16,
+                  backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
+                      ? NetworkImage(profileImageUrl!)
+                      : null,
                   backgroundColor: const Color(0xFF2563EB),
-                  child: Text(
-                    (doctorLastName != null && doctorLastName!.isNotEmpty)
-                        ? doctorLastName![0].toUpperCase()
-                        : 'D',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: (profileImageUrl == null)
+                      ? Text(
+                          (doctorLastName != null && doctorLastName!.isNotEmpty)
+                              ? doctorLastName![0].toUpperCase()
+                              : 'D',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 8),
                 Text(

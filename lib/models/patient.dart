@@ -32,6 +32,19 @@ class Patient {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'first_name': firstName,
+      'last_name': lastName,
+      'birth_date': birthDate,
+      'phone': phone,
+      'email': email,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
+  }
+
   int get age {
     final dob = DateTime.parse(birthDate);
     final now = DateTime.now();
