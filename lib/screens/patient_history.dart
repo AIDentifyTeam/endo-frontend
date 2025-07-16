@@ -150,7 +150,7 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
                                       ),
                                     ),
                                     subtitle: Text(
-                                      'Case ID: ${patient.id}  •  Age: ${patient.age}',
+                                      'Patient ID: ${patient.patientId}  •  Age: ${patient.age}',
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                     trailing: Column(

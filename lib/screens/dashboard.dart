@@ -206,7 +206,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                     : '?';
 
                 return Card(
-                  color: Colors.white,
+                  color: const Color(0xFFF9FAFB),
                   elevation: 1,
                   margin: const EdgeInsets.only(top: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -219,7 +219,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       ),
                     ),
                     title: Text('${patient.firstName} ${patient.lastName}'),
-                    subtitle: Text('Case ID: ${patient.id} | Age: $age'),
+                    subtitle: Text('Patient ID: ${patient.patientId} | Age: $age'),
                     isThreeLine: true,
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
@@ -262,7 +262,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.green,
+                  color: const Color.fromARGB(255, 190, 190, 8),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.show_chart, color: Colors.white),

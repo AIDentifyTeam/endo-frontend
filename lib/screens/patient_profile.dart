@@ -1,3 +1,4 @@
+import 'package:endo_frontend/widgets/patient_info_card.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:endo_frontend/models/patient.dart';
@@ -78,7 +79,14 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildPatientCard(),
+                    PatientInfoCard(
+                      patient: widget.patient,
+                      isEditable: isEditing,
+                      firstNameController: _firstNameController,
+                      lastNameController: _lastNameController,
+                      phoneController: _phoneController,
+                      emailController: _emailController,
+                    ),
                     const SizedBox(height: 24),
                     const Text(
                       'Visit History',
@@ -120,113 +128,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     );
   }
 
-  Widget _buildPatientCard() {
-    final int age = calculateAge(DateTime.parse(widget.patient.birthDate));
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4)),
-        ],
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Patient Information',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    isEditing = !isEditing;
-                  });
-                },
-                icon: Icon(isEditing ? Icons.save : Icons.edit, size: 18),
-                label: Text(isEditing ? 'Save' : 'Edit'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isEditing ? Colors.green : const Color(0xFF2563EB),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          isEditing
-              ? _buildEditableField(Icons.person, _firstNameController, _lastNameController)
-              : _buildInfoRow(Icons.person, '${_firstNameController.text} ${_lastNameController.text}'),
-          _buildInfoRow(Icons.cake, 'Age: $age'),
-          isEditing
-              ? _buildEditableSingleField(Icons.phone, _phoneController)
-              : _buildInfoRow(Icons.phone, _phoneController.text),
-          isEditing
-              ? _buildEditableSingleField(Icons.email, _emailController)
-              : _buildInfoRow(Icons.email, _emailController.text),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: Colors.blueGrey[700]),
-          const SizedBox(width: 8),
-          Text(text, style: TextStyle(fontSize: 14, color: Colors.blueGrey[800])),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEditableField(IconData icon, TextEditingController first, TextEditingController last) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: Colors.blueGrey[700]),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: first,
-            decoration: const InputDecoration(labelText: 'First Name'),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: last,
-            decoration: const InputDecoration(labelText: 'Last Name'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEditableSingleField(IconData icon, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: Colors.blueGrey[700]),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              decoration: const InputDecoration(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildVisitList() {
     if (visitHistory.isEmpty) {
       return const Center(
@@ -256,12 +157,11 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                 style: const TextStyle(color: Colors.white),
               ),
             ),
-            title: Text(
-              'Date: $formattedDate',
+            title: Text('Case ID: ${visit['case_id'] ?? '-'}',
               style: TextStyle(fontSize: 14, color: Colors.blueGrey[800], fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
-              'Tooth: ${visit['tooth_number']}  •  Diagnosis: ${visit['pulp_diagnosis']}',
+              '•  Date: $formattedDate   \n•  Tooth: ${visit['tooth_number']}  •  Diagnosis: ${visit['pulp_diagnosis']}',
               style: TextStyle(fontSize: 13, color: Colors.grey[700]),
             ),
             trailing: const Icon(Icons.chevron_right),

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:endo_frontend/widgets/patient_info_card.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:endo_frontend/models/patient.dart';
@@ -110,6 +111,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final Patient patient = ModalRoute.of(context)!.settings.arguments as Patient;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       drawer: const MainDrawer(),
@@ -120,6 +122,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               title: 'New Diagnosis',
               subtitle: 'Record patient case step-by-step',
               icon: Icons.medical_services,
+            ),
+            Padding(
+              padding: EdgeInsets.all(24),
+              child: PatientInfoCard(patient: patient),
             ),
             Expanded(
               child: Padding(
@@ -134,10 +140,17 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                     });
                   },
                   itemBuilder: (context, index) {
-                    if (index == 0) return _buildToothAndPhotoStep();
+                    if (index == 0) {
+                      return SingleChildScrollView(
+                        child: _buildToothAndPhotoStep(),
+                      );
+                    }
+
                     final q = diagnosisQuestions[index - 1];
-                    return _buildQuestionCard(q);
-                  },
+                    return SingleChildScrollView(
+                      child: _buildQuestionCard(q),
+                    );
+                  }
                 ),
               ),
             ),
@@ -148,14 +161,15 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   }
 
   Widget _buildToothAndPhotoStep() {
-    return Center(
+    return Align(
+      alignment: Alignment.topCenter,
       child: Card(
         color: Colors.white,
-        margin: const EdgeInsets.only(top: 24),
+        margin: const EdgeInsets.only(top: 0),
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -261,17 +275,17 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     );
   }
 
-  Widget _buildNavigationButton(String label, VoidCallback? onPressed) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF7E22CE),
-        foregroundColor: Colors.white,
-        elevation: 4,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      ),
-      child: Text(label),
-    );
+    Widget _buildNavigationButton(String label, VoidCallback? onPressed) {
+      return ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF7E22CE),
+          foregroundColor: Colors.white,
+          elevation: 4,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        ),
+        child: Text(label),
+      );
+    }
   }
-}

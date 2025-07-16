@@ -1,5 +1,6 @@
 class Visit {
   final int id;
+  final String caseId;
   final int patient;
   final String visitDate;
   final String toothNumber;
@@ -10,6 +11,7 @@ class Visit {
 
   Visit({
     required this.id,
+    required this.caseId,
     required this.patient,
     required this.visitDate,
     required this.toothNumber,
@@ -22,6 +24,7 @@ class Visit {
   factory Visit.fromJson(Map<String, dynamic> json) {
     return Visit(
       id: json['id'],
+      caseId: json['case_id'] ?? '',
       patient: json['patient'],
       visitDate: json['visit_date'],
       toothNumber: json['tooth_number'],
