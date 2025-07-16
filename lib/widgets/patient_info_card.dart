@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:endo_frontend/models/patient.dart';
 
-class PatientInfoCard extends StatelessWidget {
+class PatientInfoCard extends StatefulWidget {
   final Patient patient;
-  final bool isEditable;
-  final TextEditingController? firstNameController;
-  final TextEditingController? lastNameController;
-  final TextEditingController? phoneController;
-  final TextEditingController? emailController;
 
-  const PatientInfoCard({
-    super.key,
-    required this.patient,
-    this.isEditable = false,
-    this.firstNameController,
-    this.lastNameController,
-    this.phoneController,
-    this.emailController,
-  });
+  const PatientInfoCard({super.key, required this.patient});
+
+  @override
+  State<PatientInfoCard> createState() => _PatientInfoCardState();
+}
+
+class _PatientInfoCardState extends State<PatientInfoCard> {
+  bool isEditing = false;
+
+  late TextEditingController _firstNameController;
+  late TextEditingController _lastNameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _emailController;
+
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController = TextEditingController(text: widget.patient.firstName);
+    _lastNameController = TextEditingController(text: widget.patient.lastName);
+    _phoneController = TextEditingController(text: widget.patient.phone);
+    _emailController = TextEditingController(text: widget.patient.email);
+  }
 
   int _calculateAge(DateTime birthDate) {
     final now = DateTime.now();
@@ -30,7 +38,7 @@ class PatientInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int age = _calculateAge(DateTime.parse(patient.birthDate));
+    final int age = _calculateAge(DateTime.parse(widget.patient.birthDate));
 
     return Container(
       decoration: BoxDecoration(
@@ -44,19 +52,46 @@ class PatientInfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Patient Information',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
+          /// Title + Edit Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Patient Information',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    isEditing = !isEditing;
+                    if (!isEditing) {
+                      // Optionally handle save logic here
+                    }
+                  });
+                },
+                icon: Icon(isEditing ? Icons.save : Icons.edit, size: 18),
+                label: Text(isEditing ? 'Save' : 'Edit'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isEditing ? Colors.green : const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
           ),
+
           const SizedBox(height: 16),
 
           /// Row 1
           Row(
             children: [
               Expanded(
-                child: isEditable
-                    ? _buildEditableField(Icons.person, firstNameController!, lastNameController!)
-                    : _buildColorInfo(Icons.person, '${patient.firstName} ${patient.lastName}', Colors.blue[100]!),
+                child: isEditing
+                    ? _buildEditableField(Icons.person, _firstNameController, _lastNameController)
+                    : _buildColorInfo(Icons.person, '${_firstNameController.text} ${_lastNameController.text}', Colors.blue[100]!),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -71,15 +106,15 @@ class PatientInfoCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: isEditable
-                    ? _buildEditableSingleField(Icons.phone, phoneController!)
-                    : _buildColorInfo(Icons.phone, patient.phone, Colors.orange[100]!),
+                child: isEditing
+                    ? _buildEditableSingleField(Icons.phone, _phoneController)
+                    : _buildColorInfo(Icons.phone, _phoneController.text, Colors.orange[100]!),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: isEditable
-                    ? _buildEditableSingleField(Icons.email, emailController!)
-                    : _buildColorInfo(Icons.email, patient.email, Colors.purple[100]!),
+                child: isEditing
+                    ? _buildEditableSingleField(Icons.email, _emailController)
+                    : _buildColorInfo(Icons.email, _emailController.text, Colors.purple[100]!),
               ),
             ],
           ),

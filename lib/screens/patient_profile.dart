@@ -81,11 +81,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                   children: [
                     PatientInfoCard(
                       patient: widget.patient,
-                      isEditable: isEditing,
-                      firstNameController: _firstNameController,
-                      lastNameController: _lastNameController,
-                      phoneController: _phoneController,
-                      emailController: _emailController,
                     ),
                     const SizedBox(height: 24),
                     const Text(

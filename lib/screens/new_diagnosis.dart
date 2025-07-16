@@ -24,7 +24,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   File? _selectedImage;
   final Map<String, dynamic> _answers = {};
   bool _submitting = false;
-
+  String? _toothNumberError;
   late Patient _patient;
 
   @override
@@ -44,6 +44,12 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   void _nextPage() {
     // Don't validate on the initial (tooth input) page
+    if (_currentPage == 0 && _toothNumberController.text.trim().isEmpty) {
+      setState(() {
+        _toothNumberError = "Tooth number is required";
+      });
+      return;
+    }
     if (_currentPage > 0 && _currentPage <= diagnosisQuestions.length) {
       final q = diagnosisQuestions[_currentPage - 1];
       if (!q.isOptional && _answers[q.title] == null) {
@@ -60,6 +66,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         curve: Curves.easeInOut,
       );
     }
+    setState(() {
+      _toothNumberError = null; // clear error if input is valid
+      _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    });
   }
 
 
@@ -178,9 +188,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               TextField(
                 controller: _toothNumberController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
                   hintText: "e.g., 24",
+                  errorText: _toothNumberError,
                 ),
               ),
               const SizedBox(height: 20),
