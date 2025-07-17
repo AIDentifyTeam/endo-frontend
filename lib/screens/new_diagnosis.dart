@@ -135,7 +135,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
             ),
             Padding(
               padding: EdgeInsets.all(24),
-              child: PatientInfoCard(patient: patient),
+              child: PatientInfoCard(
+                patient: patient,
+                toothNumber: _toothNumberController.text),
             ),
             Expanded(
               child: Padding(
@@ -143,7 +145,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                 child: PageView.builder(
                   controller: _pageController,
                   physics: const BouncingScrollPhysics(),
-                  itemCount: diagnosisQuestions.length + 1,
+                  itemCount: diagnosisQuestions.length + 2,
                   onPageChanged: (index) {
                     setState(() {
                       _currentPage = index;

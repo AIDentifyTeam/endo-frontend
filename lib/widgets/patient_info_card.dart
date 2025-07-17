@@ -1,10 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:endo_frontend/models/patient.dart';
 
 class PatientInfoCard extends StatefulWidget {
   final Patient patient;
+  final String? toothNumber;
 
-  const PatientInfoCard({super.key, required this.patient});
+  const PatientInfoCard({
+    super.key,
+    required this.patient,
+    this.toothNumber,
+  });
 
   @override
   State<PatientInfoCard> createState() => _PatientInfoCardState();
@@ -115,6 +122,19 @@ class _PatientInfoCardState extends State<PatientInfoCard> {
                 child: isEditing
                     ? _buildEditableSingleField(Icons.email, _emailController)
                     : _buildColorInfo(Icons.email, _emailController.text, Colors.purple[100]!),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          /// Row 3 - Tooth number and image
+          Row(
+            children: [
+              // Left: Tooth Number
+              Expanded(
+                child: widget.toothNumber != null
+                    ? _buildColorInfo(Icons.confirmation_number, 'Tooth #: ${widget.toothNumber}', Colors.cyan[100]!)
+                    : const SizedBox(),
               ),
             ],
           ),
