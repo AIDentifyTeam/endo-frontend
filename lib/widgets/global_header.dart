@@ -20,7 +20,6 @@ class AppHeader extends StatefulWidget {
 class _AppHeaderState extends State<AppHeader> {
   String? doctorLastName;
   String? profileImageUrl;
-  final String baseUrl = 'http://localhost:8000'; // update if deployed
 
   @override
   void initState() {

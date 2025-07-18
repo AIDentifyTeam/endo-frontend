@@ -11,7 +11,6 @@ class MainDrawer extends StatefulWidget {
 class _MainDrawerState extends State<MainDrawer> {
   String? doctorLastName;
   String? profileImageUrl;
-  final String baseUrl = 'http://localhost:8000'; // change for deployment
 
   @override
   void initState() {

@@ -26,8 +26,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _profileImageUrl;
   bool _isSaving = false;
 
-  final String baseUrl = 'http://localhost:8000'; // change if deployed
-
   @override
   void initState() {
     super.initState();

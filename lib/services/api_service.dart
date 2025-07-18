@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:endo_frontend/models/patient.dart';
 import 'package:endo_frontend/screens/notifications.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+const String baseUrl = 'https://aidentify.app';
+
 class ApiService {
-  final String baseUrl = 'http://localhost:8000/api';
+  final String apiUrl = '$baseUrl/api';
   final storage = const FlutterSecureStorage();
   Map<String, dynamic>? _cachedProfile;
 
@@ -24,17 +25,17 @@ class ApiService {
   }
 
   Future<bool> login(String username, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/token/'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': username, 'password': password}),
-    );
+      final response = await http.post(
+        Uri.parse('$apiUrl/token/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': username, 'password': password}),
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      await storage.write(key: 'access', value: data['access']);
-      await storage.write(key: 'refresh', value: data['refresh']);
-      return true;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await storage.write(key: 'access', value: data['access']);
+        await storage.write(key: 'refresh', value: data['refresh']);
+        return true;
     }
     return false;
   }
@@ -46,7 +47,7 @@ class ApiService {
     required String password,
   }) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/register/'),
+      Uri.parse('$apiUrl/register/'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'email': email,
@@ -66,7 +67,7 @@ class ApiService {
   }) async {
     final token = await storage.read(key: 'access');
     final response = await http.put(
-      Uri.parse('$baseUrl/change-password/'),
+      Uri.parse('$apiUrl/change-password/'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -89,7 +90,7 @@ class ApiService {
   Future<bool> deleteAccount() async {
     final token = await storage.read(key: 'access');
     final response = await http.delete(
-      Uri.parse('$baseUrl/delete-account/'),
+      Uri.parse('$apiUrl/delete-account/'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -108,7 +109,7 @@ class ApiService {
   Future<Map<String, dynamic>?> getDoctorProfile() async {
     final token = await storage.read(key: 'access');
     final response = await http.get(
-      Uri.parse('$baseUrl/profile/'),
+      Uri.parse('$apiUrl/profile/'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -127,7 +128,7 @@ class ApiService {
     File? profileImage,
   }) async {
     final token = await storage.read(key: 'access');
-    final uri = Uri.parse('$baseUrl/profile/');
+    final uri = Uri.parse('$apiUrl/profile/');
 
     final request = http.MultipartRequest('PUT', uri);
     request.headers['Authorization'] = 'Bearer $token';
@@ -154,7 +155,7 @@ class ApiService {
     if (refresh == null || access == null) return;
 
     final response = await http.post(
-      Uri.parse('$baseUrl/logout/'),
+      Uri.parse('$apiUrl/logout/'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $access',
@@ -185,7 +186,7 @@ class ApiService {
     final token = await storage.read(key: 'access');
 
     final response = await http.post(
-      Uri.parse('$baseUrl/patients/'),
+      Uri.parse('$apiUrl/patients/'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -212,7 +213,7 @@ class ApiService {
     final token = await storage.read(key: 'access');
 
     final response = await http.get(
-      Uri.parse('$baseUrl/patients/'),
+      Uri.parse('$apiUrl/patients/'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -228,7 +229,7 @@ class ApiService {
   }
 
   Future<List<dynamic>?> getVisits() async {
-    final url = Uri.parse('$baseUrl/visits/');
+    final url = Uri.parse('$apiUrl/visits/');
     final token = await storage.read(key: 'access');
 
     final response = await http.get(
@@ -251,7 +252,7 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchVisitHistory(int patientId) async {
       final token = await storage.read(key: 'access');
       final response = await http.get(
-        Uri.parse('$baseUrl/visits/?patient=$patientId'),
+        Uri.parse('$apiUrl/visits/?patient=$patientId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -276,7 +277,7 @@ class ApiService {
     File? toothImage, // <- New optional parameter
   }) async {
     final token = await storage.read(key: 'access');
-    final uri = Uri.parse('$baseUrl/visits/');
+    final uri = Uri.parse('$apiUrl/visits/');
 
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer $token'
@@ -309,7 +310,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> fetchVisitById(int visitId) async {
     final token = await storage.read(key: 'access'); // Make sure this is correct
-    final url = Uri.parse('$baseUrl/visits/$visitId/'); // Must have trailing slash
+    final url = Uri.parse('$apiUrl/visits/$visitId/'); // Must have trailing slash
 
     final response = await http.get(
       url,
@@ -330,7 +331,7 @@ class ApiService {
     final token = await storage.read(key: 'access');
 
     final response = await http.get(
-      Uri.parse('$baseUrl/notification-status/'),
+      Uri.parse('$apiUrl/notification-status/'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
