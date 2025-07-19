@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
+import 'package:endo_frontend/services/api_service.dart';
 
 class NotificationItem {
   final String id;
@@ -22,6 +20,18 @@ class NotificationItem {
     required this.timestamp,
     this.isRead = false,
   });
+
+  factory NotificationItem.fromJson(Map<String, dynamic> json) {
+    final notif = json['notification'] ?? {};
+    return NotificationItem(
+      id: json['id']?.toString() ?? '',
+      title: notif['title'] ?? 'Untitled',
+      description: notif['description'] ?? '',
+      type: notif['category'] ?? 'notification',
+      timestamp: DateTime.tryParse(notif['created_at'] ?? '') ?? DateTime.now(),
+      isRead: json['is_read'] ?? false,
+    );
+  }
 }
 
 class NotificationsScreen extends StatefulWidget {
@@ -32,7 +42,6 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationsScreen> {
-  final storage = const FlutterSecureStorage();
   List<NotificationItem> _notifications = [];
   bool _isLoading = true;
 
@@ -44,36 +53,11 @@ class _NotificationScreenState extends State<NotificationsScreen> {
 
   Future<void> _loadNotifications() async {
     try {
-      final token = await storage.read(key: 'access');
-      final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/api/notification-status/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-
-        setState(() {
-          _notifications = data.map((json) {
-            final notif = json['notification'] ?? {};
-            return NotificationItem(
-              id: json['id']?.toString() ?? '',
-              title: notif['title'] ?? 'Untitled',
-              description: notif['description'] ?? '',
-              type: notif['category'] ?? 'notification',
-              timestamp: DateTime.tryParse(notif['created_at'] ?? '') ?? DateTime.now(),
-              isRead: json['is_read'] ?? false,
-            );
-          }).toList();
-
-          _isLoading = false;
-        });
-      } else {
-        throw Exception('Failed to load notifications');
-      }
+      final result = await ApiService().getNotifications();
+      setState(() {
+        _notifications = result;
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,11 +104,12 @@ class _NotificationScreenState extends State<NotificationsScreen> {
                           itemBuilder: (context, index) {
                             final n = _notifications[index];
                             return GestureDetector(
-                              onTap: () {
+                              onTap: () async {
                                 if (!n.isRead) {
                                   setState(() {
                                     n.isRead = true;
                                   });
+                                  await ApiService().markNotificationAsRead(n.id);
                                 }
                               },
                               child: Card(

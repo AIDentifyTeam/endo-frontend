@@ -355,6 +355,61 @@ class ApiService {
     }
   }
 
+  Future<List<NotificationItem>> getNotifications() async {
+    try {
+      final token = await storage.read(key: 'access');
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/notification-status/'), // baseUrl should be defined globally
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+
+        return data.map((json) {
+          final notif = json['notification'] ?? {};
+          return NotificationItem(
+            id: json['id']?.toString() ?? '',
+            title: notif['title'] ?? 'Untitled',
+            description: notif['description'] ?? '',
+            type: notif['category'] ?? 'notification',
+            timestamp: DateTime.tryParse(notif['created_at'] ?? '') ?? DateTime.now(),
+            isRead: json['is_read'] ?? false,
+          );
+        }).toList();
+      } else {
+        throw Exception('Failed to load notifications. Code ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error loading notifications: $e');
+    }
+  }
+
+  Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      final token = await storage.read(key: 'access');
+
+      final response = await http.patch(
+        Uri.parse('$baseUrl/api/notification-status/$notificationId/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'is_read': true}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to mark notification as read. Code ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error marking notification as read: $e');
+    }
+  }
+
+  
 }
+
 

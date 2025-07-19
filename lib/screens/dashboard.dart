@@ -19,7 +19,6 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   List<Visit> visits = [];
   List<Patient> recentPatients = [];
   List<Visit> todayVisits = [];
-
   bool isLoading = true;
 
   @override
@@ -35,7 +34,6 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
     final patients = (patientsRaw ?? []).cast<Patient>();
     final visits = (visitsRaw ?? []).map((v) => Visit.fromJson(v)).toList();
-
 
     final todayVisitsList = visits
         .where((v) =>
@@ -72,35 +70,73 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          Row(
-                            children: [
-                              Expanded(child: _buildQuickActionCard(
-                                icon: Icons.add,
-                                title: 'New Patient',
-                                description: 'Create a new patient record and start diagnosis',
-                                color: Colors.green,
-                                onTap: () => Navigator.pushNamed(context, '/new_patient'),
-                              )),
-                              const SizedBox(width: 16),
-                              Expanded(child: _buildQuickActionCard(
-                                icon: Icons.history,
-                                title: 'Patient History',
-                                description: 'View existing patient records',
-                                color: Colors.blue,
-                                onTap: () => Navigator.pushNamed(context, '/patient_history'),
-                              )),
-                            ],
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isWide = constraints.maxWidth > 600;
+                              return isWide
+                                  ? Row(
+                                      children: [
+                                        Expanded(child: _buildQuickActionCard(
+                                          icon: Icons.add,
+                                          title: 'New Patient',
+                                          description: 'Create a new patient record and start diagnosis',
+                                          color: Colors.green,
+                                          onTap: () => Navigator.pushNamed(context, '/new_patient'),
+                                        )),
+                                        const SizedBox(width: 16),
+                                        Expanded(child: _buildQuickActionCard(
+                                          icon: Icons.history,
+                                          title: 'Patient History',
+                                          description: 'View existing patient records',
+                                          color: Colors.blue,
+                                          onTap: () => Navigator.pushNamed(context, '/patient_history'),
+                                        )),
+                                      ],
+                                    )
+                                  : Column(
+                                      children: [
+                                        _buildQuickActionCard(
+                                          icon: Icons.add,
+                                          title: 'New Patient',
+                                          description: 'Create a new patient record and start diagnosis',
+                                          color: Colors.green,
+                                          onTap: () => Navigator.pushNamed(context, '/new_patient'),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        _buildQuickActionCard(
+                                          icon: Icons.history,
+                                          title: 'Patient History',
+                                          description: 'View existing patient records',
+                                          color: Colors.blue,
+                                          onTap: () => Navigator.pushNamed(context, '/patient_history'),
+                                        ),
+                                      ],
+                                    );
+                            },
                           ),
                           const SizedBox(height: 20),
                           _buildRecentPatientsCard(),
                           const SizedBox(height: 20),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(child: _buildTodaySummaryCard()),
-                              const SizedBox(width: 16),
-                              Expanded(child: _buildLatestResearchCard()),
-                            ],
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isWide = constraints.maxWidth > 600;
+                              return isWide
+                                  ? Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(child: _buildTodaySummaryCard()),
+                                        const SizedBox(width: 16),
+                                        Expanded(child: _buildLatestResearchCard()),
+                                      ],
+                                    )
+                                  : Column(
+                                      children: [
+                                        _buildTodaySummaryCard(),
+                                        const SizedBox(height: 16),
+                                        _buildLatestResearchCard(),
+                                      ],
+                                    );
+                            },
                           ),
                           const SizedBox(height: 30),
                         ],
@@ -238,7 +274,6 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
       ),
     );
   }
-
 
   Widget _buildTodaySummaryCard() {
     int diagnosesMade = todayVisits.length;

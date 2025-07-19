@@ -28,7 +28,7 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
   Future<void> _loadDoctorInfo() async {
-    final profile = await ApiService().getDoctorProfile(); // avoid stale cache
+    final profile = await ApiService().getDoctorProfile();
     if (profile != null && mounted) {
       final rawUrl = profile['profile_image'];
       setState(() {
@@ -44,6 +44,9 @@ class _AppHeaderState extends State<AppHeader> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final showProfile = screenWidth >= 600;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -58,19 +61,17 @@ class _AppHeaderState extends State<AppHeader> {
       ),
       child: Row(
         children: [
-          /// Drawer Button
+          // Drawer Button
           Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu, color: Color(0xFF2563EB)),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
+              onPressed: () => Scaffold.of(context).openDrawer(),
             ),
           ),
 
           const SizedBox(width: 8),
 
-          /// Gradient Icon
+          // Gradient Icon
           Container(
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(
@@ -84,7 +85,7 @@ class _AppHeaderState extends State<AppHeader> {
 
           const SizedBox(width: 12),
 
-          /// Title + Subtitle
+          // Title and Subtitle
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,56 +100,54 @@ class _AppHeaderState extends State<AppHeader> {
                 ),
                 Text(
                   widget.subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
           ),
 
-          /// User Info with Profile Picture
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
-                      ? NetworkImage(profileImageUrl!)
-                      : null,
-                  backgroundColor: const Color(0xFF2563EB),
-                  child: (profileImageUrl == null)
-                      ? Text(
-                          (doctorLastName != null && doctorLastName!.isNotEmpty)
-                              ? doctorLastName![0].toUpperCase()
-                              : 'D',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  (doctorLastName != null && doctorLastName!.isNotEmpty)
-                      ? 'Dr. $doctorLastName'
-                      : 'Dr.',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+          // Doctor profile section — only on wide screens
+          if (showProfile)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
+                        ? NetworkImage(profileImageUrl!)
+                        : null,
+                    backgroundColor: const Color(0xFF2563EB),
+                    child: (profileImageUrl == null)
+                        ? Text(
+                            (doctorLastName != null && doctorLastName!.isNotEmpty)
+                                ? doctorLastName![0].toUpperCase()
+                                : 'D',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    (doctorLastName != null && doctorLastName!.isNotEmpty)
+                        ? 'Dr. $doctorLastName'
+                        : 'Dr.',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
