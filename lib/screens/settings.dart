@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:endo_frontend/routes.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
@@ -25,7 +25,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   File? _selectedImage;
   String? _profileImageUrl;
   bool _isSaving = false;
-
+  Uint8List? _webImageBytes;
+  
   @override
   void initState() {
     super.initState();
@@ -48,9 +49,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: source, imageQuality: 80);
+
     if (picked != null) {
       setState(() {
-        _selectedImage = File(picked.path);
+        if (kIsWeb) {
+          _webImageBytes = null;
+          picked.readAsBytes().then((bytes) {
+            setState(() {
+              _webImageBytes = bytes;
+            });
+          });
+        } else {
+          _selectedImage = File(picked.path);
+        }
       });
     }
   }
@@ -61,6 +72,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
       profileImage: _selectedImage,
+      webImageBytes: _webImageBytes,
     );
     setState(() => _isSaving = false);
 
@@ -242,11 +254,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 child: CircleAvatar(
                                   radius: 40,
                                   backgroundColor: const Color(0xFFEDE9FE),
-                                  backgroundImage: _selectedImage != null
-                                      ? FileImage(_selectedImage!)
-                                      : (_profileImageUrl != null
-                                          ? NetworkImage(_profileImageUrl!) as ImageProvider
-                                          : const AssetImage('assets/images/profile_image.png')),
+                                  backgroundImage: _webImageBytes != null
+                                      ? MemoryImage(_webImageBytes!)
+                                      : (_selectedImage != null
+                                          ? FileImage(_selectedImage!)
+                                          : (_profileImageUrl != null
+                                              ? NetworkImage(_profileImageUrl!)
+                                              : const AssetImage('assets/images/profile_image.png') as ImageProvider)),
+
                                 ),
                               ),
                             ),

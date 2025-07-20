@@ -1,7 +1,12 @@
-import 'dart:io';
-import 'package:endo_frontend/widgets/patient_info_card.dart';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
+/// Only import dart:io when not on Web
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:io' as io;
+import 'package:endo_frontend/widgets/patient_info_card.dart';
 import 'package:endo_frontend/models/patient.dart';
 import 'package:endo_frontend/screens/diagnosis_result.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
@@ -21,7 +26,8 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   int _currentPage = 0;
 
   final TextEditingController _toothNumberController = TextEditingController();
-  File? _selectedImage;
+  XFile? _selectedImage;
+  Uint8List? _webImageBytes; 
   final Map<String, dynamic> _answers = {};
   bool _submitting = false;
   String? _toothNumberError;
@@ -37,7 +43,15 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
       setState(() {
-        _selectedImage = File(picked.path);
+        _selectedImage = picked;
+
+        if (kIsWeb) {
+          picked.readAsBytes().then((bytes) {
+            setState(() {
+              _webImageBytes = bytes;
+            });
+          });
+        }
       });
     }
   }
@@ -94,7 +108,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         periapicalDisease: _answers['Periapical Disease'] ?? '',
         etiology: _answers['Etiology'] ?? '',
         toothImage: _selectedImage,
+        webImageBytes: _webImageBytes, // ✅ pass this for Flutter Web
       );
+
 
       final result = await Navigator.push(
         context,
@@ -204,7 +220,11 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               ),
               if (_selectedImage != null) ...[
                 const SizedBox(height: 16),
-                Image.file(_selectedImage!, height: 100),
+                kIsWeb
+                    ? _webImageBytes != null
+                        ? Image.memory(_webImageBytes!, height: 100)
+                        : const CircularProgressIndicator()
+                    : Image.file(io.File(_selectedImage!.path), height: 100),
               ],
               const SizedBox(height: 24),
               Align(

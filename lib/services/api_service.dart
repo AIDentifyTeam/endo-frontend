@@ -1,12 +1,15 @@
+import 'package:flutter/foundation.dart'; // for kIsWeb
+import 'package:http_parser/http_parser.dart'; // for MediaType
 import 'dart:convert';
 import 'dart:io';
 import 'package:endo_frontend/models/patient.dart';
 import 'package:endo_frontend/screens/notifications.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
-const String baseUrl = 'https://aidentify.app';
-// const String baseUrl = 'http://127.0.0.1:8000';
+// const String baseUrl = 'https://aidentify.app';
+const String baseUrl = 'http://127.0.0.1:8000';
 
 class ApiService {
   final String apiUrl = '$baseUrl/api';
@@ -127,26 +130,33 @@ class ApiService {
     required String firstName,
     required String lastName,
     File? profileImage,
+    Uint8List? webImageBytes,
   }) async {
     final token = await storage.read(key: 'access');
     final uri = Uri.parse('$apiUrl/profile/');
+    final request = http.MultipartRequest('PUT', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields['first_name'] = firstName
+      ..fields['last_name'] = lastName;
 
-    final request = http.MultipartRequest('PUT', uri);
-    request.headers['Authorization'] = 'Bearer $token';
-
-    request.fields['first_name'] = firstName;
-    request.fields['last_name'] = lastName;
-
-    if (profileImage != null) {
-      final fileStream = await http.MultipartFile.fromPath('profile_image', profileImage.path);
-      request.files.add(fileStream);
+    if (kIsWeb && webImageBytes != null) {
+      request.files.add(http.MultipartFile.fromBytes(
+        'profile_image',
+        webImageBytes,
+        filename: 'profile.png',
+        contentType: MediaType('image', 'png'),
+      ));
+    } else if (profileImage != null) {
+      request.files.add(await http.MultipartFile.fromPath(
+        'profile_image',
+        profileImage.path,
+      ));
     }
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-
-    return response.statusCode == 200;
+    final streamed = await request.send();
+    return streamed.statusCode == 200;
   }
+
 
 
   Future<void> logout() async {
@@ -275,7 +285,8 @@ class ApiService {
     required String pulpDiagnosis,
     required String periapicalDisease,
     required String etiology,
-    File? toothImage, // <- New optional parameter
+    XFile? toothImage, // pass XFile instead of File
+    Uint8List? webImageBytes, // needed for web
   }) async {
     final token = await storage.read(key: 'access');
     final uri = Uri.parse('$apiUrl/visits/');
@@ -290,10 +301,24 @@ class ApiService {
       ..fields['etiology'] = etiology;
 
     if (toothImage != null) {
-      request.files.add(await http.MultipartFile.fromPath(
-        'tooth_image',
-        toothImage.path,
-      ));
+      if (kIsWeb) {
+        // 🟢 Flutter Web: Use fromBytes
+        if (webImageBytes == null) {
+          throw Exception("Web image bytes are null.");
+        }
+        request.files.add(http.MultipartFile.fromBytes(
+          'tooth_image',
+          webImageBytes,
+          filename: toothImage.name,
+          contentType: MediaType('image', 'png'), // or 'jpeg' based on file
+        ));
+      } else {
+        // ✅ Mobile/Desktop: Use fromPath
+        request.files.add(await http.MultipartFile.fromPath(
+          'tooth_image',
+          toothImage.path,
+        ));
+      }
     }
 
     final streamedResponse = await request.send();
