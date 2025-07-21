@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:endo_frontend/models/patient.dart';
 import 'package:endo_frontend/models/visit.dart';
 import 'package:endo_frontend/screens/patient_profile.dart';
