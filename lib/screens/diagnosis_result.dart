@@ -39,7 +39,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
         isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load visit data')),
+        const SnackBar(content: Text('Failed to load visit data')),
       );
     }
   }
@@ -85,7 +85,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                                   content: ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
                                     child: Image.network(
-                                        '${visitData!['tooth_image']}',
+                                      '${visitData!['tooth_image']}',
                                       height: 180,
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stackTrace) =>
@@ -107,13 +107,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                                 title: 'Diagnosis Result',
                                 content: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('🦷 Pulp Diagnosis: ${visitData!['pulp_diagnosis'] ?? 'N/A'}'),
-                                    const SizedBox(height: 8),
-                                    Text('🦠 Periapical Disease: ${visitData!['periapical_disease'] ?? 'N/A'}'),
-                                    const SizedBox(height: 8),
-                                    Text('🎯 Etiology: ${visitData!['etiology'] ?? 'N/A'}'),
-                                  ],
+                                  children: _buildDiagnosisCards(),
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -143,6 +137,43 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildDiagnosisCards() {
+    final List results = visitData!['results'] ?? [];
+    if (results.isEmpty) {
+      return [const Text('No diagnosis results available.')];
+    }
+
+    return results.map((res) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          )
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('🦷 Pulp Diagnosis: ${res['pulp_diagnosis'] ?? 'N/A'}',
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Text('🦠 Periapical Disease: ${res['periapical_disease'] ?? 'N/A'}'),
+          const SizedBox(height: 6),
+          Text('🎯 Etiology: ${res['etiology'] ?? 'N/A'}'),
+        ],
+      ),
+    );
+  }).toList();
   }
 
   Widget _buildSectionCard({required String title, required Widget content}) {
