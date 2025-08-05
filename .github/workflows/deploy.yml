@@ -41,6 +41,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
+          sudo rm -rf /var/www/app.aidentify.app/*
           sudo chown -R www-data:www-data /var/www/app.aidentify.app
           sudo chmod -R 755 /var/www/app.aidentify.app
           sudo systemctl reload nginx
