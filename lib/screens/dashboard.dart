@@ -276,7 +276,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
   Widget _buildTodaySummaryCard() {
     int diagnosesMade = todayVisits.length;
-    int rctRecommended = todayVisits.where((v) => v.etiology.toLowerCase().contains('caries')).length;
+    int rctRecommended = todayVisits.where((v) => v.etiology!.toLowerCase().contains('caries')).length;
 
     return Container(
       height: 210,
