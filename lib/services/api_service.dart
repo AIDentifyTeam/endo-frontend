@@ -11,6 +11,14 @@ import 'package:image_picker/image_picker.dart';
 const String baseUrl = 'https://aidentify.app';
 // const String baseUrl = 'http://127.0.0.1:8000';
 
+class ApiException implements Exception {
+  final String message;
+  ApiException(this.message);
+  @override
+  String toString() => message;
+}
+
+
 class ApiService {
   final String apiUrl = '$baseUrl/api';
   final storage = const FlutterSecureStorage();
@@ -189,12 +197,26 @@ class ApiService {
   Future<Patient?> createPatient({
     required String firstName,
     required String lastName,
-    required String email,
-    required String phone,
-    required String sex,
-    required String birthDate,
+    String? patientId, // optional, backend generates if null
+    String? email,
+    String? phone,
+    String? sex,
+    String? birthDate, // YYYY-MM-DD
   }) async {
     final token = await storage.read(key: 'access');
+
+    String? _nn(String? v) =>
+        (v == null || v.trim().isEmpty) ? null : v.trim();
+
+    final payload = <String, dynamic>{
+      'first_name': firstName.trim(),
+      'last_name': lastName.trim(),
+      if (_nn(patientId) != null) 'patient_id': _nn(patientId),
+      if (_nn(email) != null) 'email': _nn(email),
+      if (_nn(phone) != null) 'phone': _nn(phone),
+      if (_nn(sex) != null) 'sex': _nn(sex),
+      if (_nn(birthDate) != null) 'birth_date': _nn(birthDate),
+    };
 
     final response = await http.post(
       Uri.parse('$apiUrl/patients/'),
@@ -202,22 +224,37 @@ class ApiService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({
-        'first_name': firstName,
-        'last_name': lastName,
-        'email': email,
-        'phone': phone,
-        'sex': sex,
-        'birth_date': birthDate,
-      }),
+      body: jsonEncode(payload),
     );
 
     if (response.statusCode == 201) {
-      final json = jsonDecode(response.body);
-      return Patient.fromJson(json);
+      return Patient.fromJson(jsonDecode(response.body));
     }
 
-    return null;
+    // Handle validation errors
+    if (response.statusCode == 400) {
+      try {
+        final err = jsonDecode(response.body);
+        if (err is Map) {
+          final keys = err.keys.map((e) => e.toString()).toSet();
+          if (keys.contains('email') || keys.contains('phone')) {
+            throw ApiException(
+              'Failed to create new patient, please enter a valid phone number/email.',
+            );
+          }
+          if (err['detail'] is String) throw ApiException(err['detail']);
+          for (final v in err.values) {
+            if (v is List && v.isNotEmpty && v.first is String) {
+              throw ApiException(v.first as String);
+            }
+          }
+        }
+      } catch (_) {
+        // ignore parse issues
+      }
+    }
+
+    throw ApiException('Failed to create patient');
   }
 
   Future<List<Patient>> getPatients() async {

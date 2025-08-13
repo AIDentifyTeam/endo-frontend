@@ -234,7 +234,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           else
             Column(
               children: recentPatients.map((patient) {
-                final birthDate = DateTime.tryParse(patient.birthDate);
+                final birthDate = (patient.birthDate != null && patient.birthDate!.trim().isNotEmpty)
+                    ? DateTime.tryParse(patient.birthDate!)
+                    : null;
                 final now = DateTime.now();
                 final age = birthDate != null
                     ? now.year - birthDate.year - ((now.month < birthDate.month || (now.month == birthDate.month && now.day < birthDate.day)) ? 1 : 0)
