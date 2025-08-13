@@ -14,7 +14,7 @@ class PatientSelectionPage extends StatefulWidget {
 
 class _PatientSelectionPageState extends State<PatientSelectionPage> {
   final TextEditingController _searchController = TextEditingController();
-  String _sortBy = 'name';
+  String _sortBy = 'lastVisit';
   List<Patient> allPatients = [];
   bool _isLoading = true;
 
@@ -37,19 +37,27 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
     List<Patient> filtered = allPatients.where((p) {
       return p.firstName.toLowerCase().contains(searchTerm) ||
           p.lastName.toLowerCase().contains(searchTerm) ||
+          (p.patientId ?? '').toLowerCase().contains(searchTerm) ||
           p.id.toString().contains(searchTerm);
     }).toList();
 
     filtered.sort((a, b) {
       switch (_sortBy) {
         case 'name':
-          return '${a.lastName} ${a.firstName}'.compareTo('${b.lastName} ${b.firstName}');
+          return '${a.lastName} ${a.firstName}'
+              .compareTo('${b.lastName} ${b.firstName}');
         case 'id':
           return a.id.compareTo(b.id);
         case 'age':
-          return b.age.compareTo(a.age);
+          final ageA = a.age ?? -1; // null age at bottom
+          final ageB = b.age ?? -1;
+          return ageB.compareTo(ageA);
         case 'lastVisit':
-          return b.createdAt.compareTo(a.createdAt);
+          final dateA = DateTime.tryParse(a.createdAt ?? '') ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          final dateB = DateTime.tryParse(b.createdAt ?? '') ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          return dateB.compareTo(dateA);
         default:
           return 0;
       }
@@ -96,23 +104,35 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
                         ),
                         const SizedBox(width: 16),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 12),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade300),
+                            border:
+                                Border.all(color: Colors.grey.shade300),
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: _sortBy,
                               icon: const Icon(Icons.arrow_drop_down),
                               items: const [
-                                DropdownMenuItem(value: 'name', child: Text('Sort by Name')),
-                                DropdownMenuItem(value: 'id', child: Text('Sort by Case ID')),
-                                DropdownMenuItem(value: 'age', child: Text('Sort by Age')),
-                                DropdownMenuItem(value: 'lastVisit', child: Text('Sort by Created Date')),
+                                DropdownMenuItem(
+                                    value: 'name',
+                                    child: Text('Sort by Name')),
+                                DropdownMenuItem(
+                                    value: 'id',
+                                    child: Text('Sort by Case ID')),
+                                DropdownMenuItem(
+                                    value: 'age',
+                                    child: Text('Sort by Age')),
+                                DropdownMenuItem(
+                                    value: 'lastVisit',
+                                    child:
+                                        Text('Sort by Created Date')),
                               ],
-                              onChanged: (value) => setState(() => _sortBy = value!),
+                              onChanged: (value) =>
+                                  setState(() => _sortBy = value!),
                             ),
                           ),
                         ),
@@ -124,22 +144,29 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
                         : Expanded(
                             child: ListView.separated(
                               itemCount: filteredPatients.length,
-                              separatorBuilder: (context, index) => const SizedBox(height: 1),
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 1),
                               itemBuilder: (context, index) {
                                 final patient = filteredPatients[index];
                                 return Card(
                                   color: Colors.white,
                                   elevation: 1,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius:
+                                        BorderRadius.circular(12),
                                   ),
                                   child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 12),
                                     leading: CircleAvatar(
-                                      backgroundColor: const Color(0xFF2563EB),
+                                      backgroundColor:
+                                          const Color(0xFF2563EB),
                                       child: Text(
-                                        '${patient.firstName[0]}${patient.lastName[0]}',
-                                        style: const TextStyle(color: Colors.white),
+                                        '${patient.firstName.isNotEmpty ? patient.firstName[0] : ''}'
+                                        '${patient.lastName.isNotEmpty ? patient.lastName[0] : ''}',
+                                        style: const TextStyle(
+                                            color: Colors.white),
                                       ),
                                     ),
                                     title: Text(
@@ -150,19 +177,30 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
                                       ),
                                     ),
                                     subtitle: Text(
-                                      'Patient ID: ${patient.patientId}  •  Age: ${patient.age}',
+                                      'Patient ID: ${patient.patientId ?? '-'}' '${patient.age != null ? '  •  Age: ${patient.age}' : ''}',
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                     trailing: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         const Text(
                                           'Created At',
-                                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey),
                                         ),
                                         Text(
-                                          patient.createdAt.split('T').first,
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                          (patient.createdAt != null &&
+                                                  patient.createdAt!
+                                                      .contains('T'))
+                                              ? patient.createdAt!
+                                                  .split('T')
+                                                  .first
+                                              : '-',
+                                          style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500),
                                         ),
                                       ],
                                     ),
@@ -186,7 +224,8 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).pushNamed('/new_patient'),
+        onPressed: () =>
+            Navigator.of(context).pushNamed('/new_patient'),
         icon: const Icon(Icons.person_add, color: Colors.white),
         label: const Text(
           'New Patient',
