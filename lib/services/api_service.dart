@@ -206,7 +206,7 @@ class ApiService {
     final token = await storage.read(key: 'access');
 
     String? _nn(String? v) =>
-        (v == null || v.trim().isEmpty) ? null : v.trim();
+    (v == null || v.trim().isEmpty) ? null : v.trim();
 
     final payload = <String, dynamic>{
       'first_name': firstName.trim(),
@@ -319,23 +319,27 @@ class ApiService {
     required int patientId,
     required String toothNumber,
     required Map<String, dynamic> answers,
-    required String pulpDiagnosis,
-    required String periapicalDisease,
-    required String etiology,
-    XFile? toothImage, // pass XFile instead of File
-    Uint8List? webImageBytes, // needed for web
+    String? pulpDiagnosis,
+    String? periapicalDisease,
+    String? etiology,
+    XFile? toothImage,
+    Uint8List? webImageBytes,
   }) async {
     final token = await storage.read(key: 'access');
     final uri = Uri.parse('$apiUrl/visits/');
+
+    String? _nn(String? v) =>
+        (v == null || v.trim().isEmpty) ? null : v.trim();
 
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer $token'
       ..fields['patient'] = patientId.toString()
       ..fields['tooth_number'] = toothNumber
-      ..fields['answers'] = jsonEncode(answers)
-      ..fields['pulp_diagnosis'] = pulpDiagnosis
-      ..fields['periapical_disease'] = periapicalDisease
-      ..fields['etiology'] = etiology;
+      ..fields['answers'] = jsonEncode(answers);
+
+    if (_nn(pulpDiagnosis) != null) request.fields['pulp_diagnosis'] = _nn(pulpDiagnosis)!;
+    if (_nn(periapicalDisease) != null) request.fields['periapical_disease'] = _nn(periapicalDisease)!;
+    if (_nn(etiology) != null) request.fields['etiology'] = _nn(etiology)!;
 
     if (toothImage != null) {
       if (kIsWeb) {
@@ -365,7 +369,20 @@ class ApiService {
       final json = jsonDecode(response.body);
       return json['id']; // return visitId
     } else {
-      throw Exception('Failed to create visit: ${response.body}');
+      if (response.statusCode == 400) {
+        try {
+          final err = jsonDecode(response.body);
+          if (err is Map) {
+            for (final v in err.values) {
+              if (v is List && v.isNotEmpty && v.first is String) {
+                throw ApiException(v.first);
+              }
+            }
+          }
+        } catch (_) {}
+      }
+      throw ApiException('Failed to create visit');
+
     }
   }
 

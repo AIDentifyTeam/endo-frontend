@@ -26,17 +26,26 @@ class Visit {
   });
 
   factory Visit.fromJson(Map<String, dynamic> json) {
+    String? _nn(dynamic v) =>
+        (v == null || v.toString().trim().isEmpty) ? null : v.toString().trim();
+
+    int _asInt(dynamic v) =>
+        v is int ? v : int.tryParse(v?.toString() ?? '') ?? 0;
+
+    String _asString(dynamic v) => v?.toString() ?? '';
+
     // answers may be a Map, a Stringified JSON, or null
     final rawAnswers = json['answers'];
     Map<String, dynamic> parsedAnswers = {};
     if (rawAnswers is Map) {
-      parsedAnswers = Map<String, dynamic>.from(rawAnswers as Map);
+      parsedAnswers = Map<String, dynamic>.from(rawAnswers);
     } else if (rawAnswers is String && rawAnswers.isNotEmpty) {
-      parsedAnswers = Map<String, dynamic>.from(jsonDecode(rawAnswers));
+      try {
+        parsedAnswers = Map<String, dynamic>.from(jsonDecode(rawAnswers));
+      } catch (_) {
+        parsedAnswers = {};
+      }
     }
-
-    int _asInt(dynamic v) => v is int ? v : int.tryParse(v?.toString() ?? '') ?? 0;
-    String _asString(dynamic v) => v?.toString() ?? '';
 
     return Visit(
       id: _asInt(json['id']),
@@ -45,15 +54,16 @@ class Visit {
       visitDate: _asString(json['visit_date']),
       toothNumber: _asString(json['tooth_number']),
       answers: parsedAnswers,
-      pulpDiagnosis: (json['pulp_diagnosis'] as String?)?.trim(),
-      periapicalDisease: (json['periapical_disease'] as String?)?.trim(),
-      etiology: (json['etiology'] as String?)?.trim(),
+      pulpDiagnosis: _nn(json['pulp_diagnosis']),
+      periapicalDisease: _nn(json['periapical_disease']),
+      etiology: _nn(json['etiology']),
     );
   }
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{
       'id': id,
+      'case_id': caseId,
       'patient': patient,
       'visit_date': visitDate,
       'tooth_number': toothNumber,
