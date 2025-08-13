@@ -110,14 +110,6 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     options: ['Negative', 'Positive'],
   ),
   DiagnosisQuestion(
-    id: 'mobility',
-    title: 'Tooth Mobility',
-    text: 'What is the grade of mobility observed in the tooth?',
-    help: 'Mobility may suggest periodontal involvement or trauma.',
-    options: ['None', 'Mild', 'Moderate', 'Severe'],
-    isOptional: true,
-  ),
-  DiagnosisQuestion(
     id: 'radiographic_findings',
     title: 'Radiographic Findings',
     text: 'What does the periapical radiograph reveal?',
@@ -126,10 +118,6 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
       'No abnormal findings',
       'PDL widening',
       'Periapical radiolucency',
-      'External resorption',
-      'Internal resorption',
-      'Condensing osteitis',
-      'Root fracture'
     ],
   ),
 ];
