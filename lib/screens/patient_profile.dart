@@ -21,8 +21,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
-  late TextEditingController _phoneController;
-  late TextEditingController _emailController;
 
   List<Map<String, dynamic>> visitHistory = [];
 
@@ -31,8 +29,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     super.initState();
     _firstNameController = TextEditingController(text: widget.patient.firstName);
     _lastNameController = TextEditingController(text: widget.patient.lastName);
-    _phoneController = TextEditingController(text: widget.patient.phone);
-    _emailController = TextEditingController(text: widget.patient.email);
     fetchVisitHistory();
   }
 
