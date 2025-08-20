@@ -43,6 +43,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   bool get _onHistory => _currentStep == 0;
 
+  // --- NEW: Backend-driven etiology filtering state ---
+  Set<String>? _enabledEtiologies; // null => allow all (no filtering)
+  bool _loadingEtiologies = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -177,6 +181,69 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     });
   }
 
+  // -------------------- NEW: Build Page-1 payload for API --------------------
+  Map<String, String> _buildPage1Payload() {
+    final ids = <String>[_pId, ..._qToXIds]; // only P..X
+    final Map<String, String> out = {};
+    for (final id in ids) {
+      final v = _answerValueForId(id);
+      if (v != null && v.isNotEmpty) out[id] = v;
+    }
+    return out;
+  }
+
+  // -------------------- NEW: Next from Page-1 (fetch etiologies) -------------
+  Future<void> _onNextFromHistory() async {
+    // If P != Yes → skip filtering and allow all options
+    if (!_pIsYes) {
+      // wipe Q..X before moving
+      for (final id in _qToXIds) {
+        final q = _findById(id);
+        if (q != null) _answers.remove(q.title);
+      }
+      setState(() => _enabledEtiologies = null);
+      _goToStep(1);
+      return;
+    }
+
+    final payload = _buildPage1Payload();
+    setState(() => _loadingEtiologies = true);
+
+    try {
+      final res = await ApiService().getEtiologiesFromPage1(payload);
+      final backendList = (res['etiologies'] as List<dynamic>? ?? const [])
+          .map((e) => e.toString())
+          .toList();
+
+      final uiOptions = _findById('etiology_assessment')?.options ?? const <String>[];
+      final allowed = backendList.toSet().intersection(uiOptions.toSet());
+
+      setState(() {
+        _enabledEtiologies = allowed.isEmpty ? null : allowed;
+        // prune any previously-selected etiologies that are now disabled
+        final q = _findById('etiology_assessment');
+        if (q != null) {
+          final current = List<String>.from((_answers[q.title] as List?) ?? const []);
+          current.removeWhere((opt) =>
+              opt != 'Not sure' &&
+              _enabledEtiologies != null &&
+              !_enabledEtiologies!.contains(opt));
+          _answers[q.title] = current;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not fetch etiology suggestions. Showing all.')),
+      );
+      setState(() => _enabledEtiologies = null); // allow all on failure
+    } finally {
+      if (!mounted) return;
+      setState(() => _loadingEtiologies = false);
+      _goToStep(1);
+    }
+  }
+
   // -------------------- Submit --------------------
   Future<void> _submitDiagnosis() async {
     if (_toothNumberController.text.trim().isEmpty) {
@@ -261,7 +328,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               ),
             ),
 
-            // Page header (nice, minimal)
+            // Page header
             SliverToBoxAdapter(
               child: _buildPageHeader(
                 title: _onHistory ? 'Patient History' : 'Clinical & Radiographic Evaluation',
@@ -271,7 +338,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               ),
             ),
 
-            // Patient card (keep on both steps)
+            // Patient card
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -282,7 +349,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               ),
             ),
 
-            // Tooth & Photo — show ONLY on Page 1
+            // Tooth & Photo — Page 1 only
             if (_onHistory)
               SliverToBoxAdapter(
                 child: Column(
@@ -305,7 +372,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                 ),
               ),
 
-            // Questions (for the active step)
+            // Questions for active step
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -335,20 +402,8 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                     const Spacer(),
                     _onHistory
                         ? _buildNavigationButton(
-                            'Next',
-                            _historyValid()
-                                ? () {
-                                    // If P not Yes, wipe Q..X answers before moving
-                                    final p = _findById(_pId);
-                                    if (p == null || !_pIsYes) {
-                                      for (final id in _qToXIds) {
-                                        final q = _findById(id);
-                                        if (q != null) _answers.remove(q.title);
-                                      }
-                                    }
-                                    _goToStep(1);
-                                  }
-                                : null,
+                            _loadingEtiologies ? 'Loading…' : 'Next',
+                            _historyValid() && !_loadingEtiologies ? _onNextFromHistory : null,
                           )
                         : _buildNavigationButton(
                             _submitting ? 'Submitting...' : 'Submit',
@@ -476,31 +531,39 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
             const SizedBox(height: 12),
 
             if (isMulti)
-              ...q.options.map((option) => CheckboxListTile(
-                    title: Text(option),
-                    enabled: (_answers[q.title] as List?)?.contains('Not sure') == true &&
-                            option != 'Not sure'
-                        ? false
-                        : true,
-                    value: (_answers[q.title] as List?)?.contains(option) ?? false,
-                    onChanged: (selected) {
-                      setState(() {
-                        final current = (_answers[q.title] as List?) ?? [];
-                        if (selected == true) {
-                          if (option == 'Not sure') {
-                            _answers[q.title] = ['Not sure'];
-                          } else {
-                            current.remove('Not sure');
-                            current.add(option);
-                            _answers[q.title] = current;
-                          }
+              ...q.options.map((option) {
+                final selected = (_answers[q.title] as List?) ?? const [];
+                final notSureSelected = selected.contains('Not sure');
+
+                // filter rule: if _enabledEtiologies is null => allow all; always allow "Not sure"
+                final allowedByFilter = _enabledEtiologies == null ||
+                    option == 'Not sure' ||
+                    _enabledEtiologies!.contains(option);
+                final isEnabled = allowedByFilter && (!notSureSelected || option == 'Not sure');
+
+                return CheckboxListTile(
+                  title: Text(option),
+                  enabled: isEnabled,
+                  value: selected.contains(option),
+                  onChanged: (selectedVal) {
+                    setState(() {
+                      final current = List<String>.from((_answers[q.title] as List?) ?? const []);
+                      if (selectedVal == true) {
+                        if (option == 'Not sure') {
+                          _answers[q.title] = ['Not sure'];
                         } else {
-                          current.remove(option);
+                          current.remove('Not sure');
+                          if (!current.contains(option)) current.add(option);
                           _answers[q.title] = current;
                         }
-                      });
-                    },
-                  ))
+                      } else {
+                        current.remove(option);
+                        _answers[q.title] = current;
+                      }
+                    });
+                  },
+                );
+              })
             else
               ...q.options.map((option) => RadioListTile(
                     title: Text(option),

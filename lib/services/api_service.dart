@@ -665,4 +665,37 @@ class ApiService {
       throw Exception('Failed to mark notification as read. Code ${response.statusCode}');
     }
   }
+
+  Future<Map<String, dynamic>> getEtiologiesFromPage1(
+    Map<String, String> page1Answers,
+  ) async {
+    try {
+      final resp = await http.post(
+        Uri.parse('$apiUrl/etiologies/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'answers': page1Answers}),
+      );
+
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final list = (data['etiologies'] as List<dynamic>? ?? const [])
+            .map((e) => e.toString())
+            .toList();
+        final version = (data['ruleset_version'] ?? '').toString();
+
+        return {
+          'etiologies': list,
+          'ruleset_version': version,
+        };
+      }
+
+      // Non-200 → surface error
+      throw ApiException(
+        'Failed to fetch etiologies (${resp.statusCode}): ${resp.body}',
+      );
+    } catch (e) {
+      _notify('Couldn’t fetch etiologies. Please try again.');
+      rethrow;
+    }
+  }
 }
