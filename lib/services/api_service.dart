@@ -669,33 +669,36 @@ class ApiService {
   Future<Map<String, dynamic>> getEtiologiesFromPage1(
     Map<String, String> page1Answers,
   ) async {
-    try {
-      final resp = await http.post(
-        Uri.parse('$apiUrl/etiologies/'),
-        headers: {'Content-Type': 'application/json'},
+    final resp = await _sendAuthorized(
+      (token) => http.post(
+        Uri.parse('$apiUrl/etiologies/'), // NOTE: trailing slash
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
         body: jsonEncode({'answers': page1Answers}),
-      );
+      ),
+    );
 
-      if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        final list = (data['etiologies'] as List<dynamic>? ?? const [])
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      return {
+        'etiologies': (data['etiologies'] as List<dynamic>? ?? const [])
             .map((e) => e.toString())
-            .toList();
-        final version = (data['ruleset_version'] ?? '').toString();
-
-        return {
-          'etiologies': list,
-          'ruleset_version': version,
-        };
-      }
-
-      // Non-200 → surface error
-      throw ApiException(
-        'Failed to fetch etiologies (${resp.statusCode}): ${resp.body}',
-      );
-    } catch (e) {
-      _notify('Couldn’t fetch etiologies. Please try again.');
-      rethrow;
+            .toList(),
+        'ruleset_version': (data['ruleset_version'] ?? '').toString(),
+      };
     }
+
+    // bubble up server/validation errors cleanly
+    if (resp.statusCode == 400) {
+      try {
+        final err = jsonDecode(resp.body);
+        if (err is Map && err['detail'] is String) {
+          throw ApiException(err['detail']);
+        }
+      } catch (_) {}
+    }
+    throw ApiException('Failed to fetch etiologies (${resp.statusCode}): ${resp.body}');
   }
 }

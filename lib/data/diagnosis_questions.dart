@@ -121,14 +121,19 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     help:
         'You can select multiple causes. If you are not sure, select "Not sure".',
     options: [
+      'Abrasion',
+      'Attrition',
       'Caries',
+      'Congenital anomalies (Dens invaginatus/evaginatus; palatal/lingual grooves)',
+      'Crack',
+      'External cervical resorption',
+      'Non-endodontic pain',
+      'Periodontal disease',
+      'Persistent infection',
       'Restorative',
       'Trauma',
-      'Crack',
       'Vertical root fracture',
-      'Periodontal',
-      'Persistent infection',
-      'Not sure'
+      'Not sure',
     ],
   ),
 
