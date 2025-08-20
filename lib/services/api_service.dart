@@ -393,16 +393,16 @@ class ApiService {
     String? sex,
     String? birthDate,
   }) async {
-    String? _nn(String? v) => (v == null || v.trim().isEmpty) ? null : v.trim();
+    String? nn(String? v) => (v == null || v.trim().isEmpty) ? null : v.trim();
 
     final payload = <String, dynamic>{
       'first_name': firstName.trim(),
       'last_name': lastName.trim(),
-      if (_nn(patientId) != null) 'patient_id': _nn(patientId),
-      if (_nn(email) != null) 'email': _nn(email),
-      if (_nn(phone) != null) 'phone': _nn(phone),
-      if (_nn(sex) != null) 'sex': _nn(sex),
-      if (_nn(birthDate) != null) 'birth_date': _nn(birthDate),
+      if (nn(patientId) != null) 'patient_id': nn(patientId),
+      if (nn(email) != null) 'email': nn(email),
+      if (nn(phone) != null) 'phone': nn(phone),
+      if (nn(sex) != null) 'sex': nn(sex),
+      if (nn(birthDate) != null) 'birth_date': nn(birthDate),
     };
 
     final response = await _sendAuthorized(
@@ -508,7 +508,7 @@ class ApiService {
     XFile? toothImage,
     Uint8List? webImageBytes,
   }) async {
-    String? _nn(String? v) => (v == null || v.trim().isEmpty) ? null : v.trim();
+    String? nn(String? v) => (v == null || v.trim().isEmpty) ? null : v.trim();
 
     final streamedResponse = await _sendAuthorizedMultipart((token) async {
       final uri = Uri.parse('$apiUrl/visits/');
@@ -518,14 +518,14 @@ class ApiService {
         ..fields['tooth_number'] = toothNumber
         ..fields['answers'] = jsonEncode(answers);
 
-      if (_nn(pulpDiagnosis) != null) {
-        request.fields['pulp_diagnosis'] = _nn(pulpDiagnosis)!;
+      if (nn(pulpDiagnosis) != null) {
+        request.fields['pulp_diagnosis'] = nn(pulpDiagnosis)!;
       }
-      if (_nn(periapicalDisease) != null) {
-        request.fields['periapical_disease'] = _nn(periapicalDisease)!;
+      if (nn(periapicalDisease) != null) {
+        request.fields['periapical_disease'] = nn(periapicalDisease)!;
       }
-      if (_nn(etiology) != null) {
-        request.fields['etiology'] = _nn(etiology)!;
+      if (nn(etiology) != null) {
+        request.fields['etiology'] = nn(etiology)!;
       }
 
       if (toothImage != null) {

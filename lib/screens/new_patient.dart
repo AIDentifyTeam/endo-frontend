@@ -258,8 +258,9 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                                   ),
                                 ),
                                 onPressed: () async {
-                                  if (!_formKey.currentState!.validate())
+                                  if (!_formKey.currentState!.validate()) {
                                     return;
+                                  }
 
                                   try {
                                     final patient = await ApiService()
@@ -287,10 +288,7 @@ class _NewPatientScreenState extends State<NewPatientScreen> {
                                           ? null
                                           : _phoneController.text.trim(),
                                       sex: _selectedSex,
-                                      birthDate: _selectedDate == null
-                                          ? null
-                                          : _selectedDate!
-                                              .toIso8601String()
+                                      birthDate: _selectedDate?.toIso8601String()
                                               .split('T')
                                               .first,
                                     );
