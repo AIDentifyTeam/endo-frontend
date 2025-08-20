@@ -36,7 +36,6 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
     final todayVisitsList = visits
         .where((v) =>
-            v.visitDate != null &&
             v.visitDate.toString().startsWith(today))
         .toList();
 
@@ -386,7 +385,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

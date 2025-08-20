@@ -26,13 +26,13 @@ class Visit {
   });
 
   factory Visit.fromJson(Map<String, dynamic> json) {
-    String? _nn(dynamic v) =>
+    String? nn(dynamic v) =>
         (v == null || v.toString().trim().isEmpty) ? null : v.toString().trim();
 
-    int _asInt(dynamic v) =>
+    int asInt(dynamic v) =>
         v is int ? v : int.tryParse(v?.toString() ?? '') ?? 0;
 
-    String _asString(dynamic v) => v?.toString() ?? '';
+    String asString(dynamic v) => v?.toString() ?? '';
 
     // answers may be a Map, a Stringified JSON, or null
     final rawAnswers = json['answers'];
@@ -48,15 +48,15 @@ class Visit {
     }
 
     return Visit(
-      id: _asInt(json['id']),
-      caseId: _asString(json['case_id']),
-      patient: _asInt(json['patient']),
-      visitDate: _asString(json['visit_date']),
-      toothNumber: _asString(json['tooth_number']),
+      id: asInt(json['id']),
+      caseId: asString(json['case_id']),
+      patient: asInt(json['patient']),
+      visitDate: asString(json['visit_date']),
+      toothNumber: asString(json['tooth_number']),
       answers: parsedAnswers,
-      pulpDiagnosis: _nn(json['pulp_diagnosis']),
-      periapicalDisease: _nn(json['periapical_disease']),
-      etiology: _nn(json['etiology']),
+      pulpDiagnosis: nn(json['pulp_diagnosis']),
+      periapicalDisease: nn(json['periapical_disease']),
+      etiology: nn(json['etiology']),
     );
   }
 

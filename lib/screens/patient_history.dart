@@ -191,10 +191,9 @@ class _PatientSelectionPageState extends State<PatientSelectionPage> {
                                               color: Colors.grey),
                                         ),
                                         Text(
-                                          (patient.createdAt != null &&
-                                                  patient.createdAt!
+                                          (patient.createdAt
                                                       .contains('T'))
-                                              ? patient.createdAt!
+                                              ? patient.createdAt
                                                   .split('T')
                                                   .first
                                               : '-',

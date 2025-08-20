@@ -22,19 +22,19 @@ class Patient {
   });
 
   factory Patient.fromJson(Map<String, dynamic> json) {
-    String? _nn(dynamic v) =>
+    String? nn(dynamic v) =>
         (v == null || v.toString().trim().isEmpty) ? null : v.toString().trim();
 
     return Patient(
       id: json['id'] is int
           ? json['id']
           : int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      patientId: _nn(json['patient_id']),
+      patientId: nn(json['patient_id']),
       firstName: json['first_name']?.toString().trim() ?? '',
       lastName: json['last_name']?.toString().trim() ?? '',
-      birthDate: _nn(json['birth_date']),
-      phone: _nn(json['phone']),
-      email: _nn(json['email']),
+      birthDate: nn(json['birth_date']),
+      phone: nn(json['phone']),
+      email: nn(json['email']),
       createdAt: json['created_at']?.toString() ?? '',
       updatedAt: json['updated_at']?.toString() ?? '',
     );
