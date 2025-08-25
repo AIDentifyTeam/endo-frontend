@@ -152,7 +152,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               style: TextStyle(fontSize: 14, color: Colors.blueGrey[800], fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
-              '•  Date: $formattedDate   \n•  Tooth: ${visit['tooth_number']}  •  Diagnosis: ${visit['pulp_diagnosis']}',
+              '•  Date: $formattedDate   \n•  Tooth: ${visit['tooth_number']}  •  Diagnosis: ${visit['pulp_diagnosis'] ?? 'N/A'} ',
               style: TextStyle(fontSize: 13, color: Colors.grey[700]),
             ),
             trailing: const Icon(Icons.chevron_right),

@@ -24,11 +24,15 @@ class NewDiagnosisScreen extends StatefulWidget {
 class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _toothNumberController = TextEditingController();
-  final TextEditingController _chiefComplaintTextController = TextEditingController();
+  final TextEditingController _chiefComplaintTextController =
+      TextEditingController();
 
   XFile? _selectedImage;
   Uint8List? _webImageBytes;
+
+  /// All answers are stored by **question id** (not title).
   final Map<String, dynamic> _answers = {};
+
   bool _submitting = false;
   String? _toothNumberError;
   late Patient _patient;
@@ -43,7 +47,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   bool get _onHistory => _currentStep == 0;
 
-  // --- NEW: Backend-driven etiology filtering state ---
+  // Backend-driven etiology filtering state
   Set<String>? _enabledEtiologies; // null => allow all (no filtering)
   bool _loadingEtiologies = false;
 
@@ -61,7 +65,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     super.dispose();
   }
 
-  // ---------- Utilities (by ID, answers stay keyed by TITLE) ----------
+  // ---------- Utilities (lookup by id) ----------
   DiagnosisQuestion? _findById(String id) {
     for (final q in diagnosisQuestions) {
       if (q.id == id) return q;
@@ -70,9 +74,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   }
 
   String? _answerValueForId(String id) {
-    final q = _findById(id);
-    if (q == null) return null;
-    final v = _answers[q.title];
+    final v = _answers[id];
     return v is String ? v : null;
   }
 
@@ -98,7 +100,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   List<DiagnosisQuestion> get _evaluationQuestions {
     final idsHistory = <String>{_chiefId, _pId, ..._qToXIds};
-    return diagnosisQuestions.where((q) => !idsHistory.contains(q.id)).toList();
+    return diagnosisQuestions
+        .where((q) => !idsHistory.contains(q.id))
+        .toList();
   }
 
   List<DiagnosisQuestion> get _activeQuestions =>
@@ -107,24 +111,22 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   // -------------------- Validation for Next --------------------
   bool _historyValid() {
     final p = _findById(_pId);
-
-    // If P isn't present yet, just require Chief Complaint (if it exists)
     if (p == null) {
       final cc = _findById(_chiefId);
       if (cc == null) return true;
-      return _answers[cc.title] != null;
+      return _answers[cc.id] != null;
     }
 
-    // Require P
-    final pAnswer = _answers[p.title];
-    if (pAnswer == null || (pAnswer is String && pAnswer.isEmpty)) return false;
+    final pAnswer = _answers[p.id];
+    if (pAnswer == null || (pAnswer is String && pAnswer.isEmpty)) {
+      return false;
+    }
 
-    // If P == Yes, require all present Q..X
     if (_pIsYes) {
       for (final id in _qToXIds) {
         final q = _findById(id);
         if (q != null) {
-          final val = _answers[q.title];
+          final val = _answers[q.id];
           if (val == null || (val is String && val.isEmpty)) return false;
         }
       }
@@ -135,7 +137,6 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   // -------------------- Step navigation with scroll-to-top --------------------
   void _goToStep(int step) {
     setState(() => _currentStep = step);
-    // Reset scroll position to the very top of the CustomScrollView
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
       _scrollController.animateTo(
@@ -163,12 +164,11 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   }
 
   // -------------------- Answer helpers --------------------
-  void _clearAnswer(String title) {
+  void _clearAnswer(String id) {
     setState(() {
-      _answers.remove(title);
-      final cc = _findById(_chiefId);
-      if (cc != null && title == cc.title) {
-        _answers.remove('Chief Complaint Text');
+      _answers.remove(id);
+      if (id == _chiefId) {
+        _answers.remove('chief_complaint_text');
         _chiefComplaintTextController.clear();
       }
     });
@@ -181,7 +181,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     });
   }
 
-  // -------------------- NEW: Build Page-1 payload for API --------------------
+  // -------------------- Build Page-1 payload for API --------------------
   Map<String, String> _buildPage1Payload() {
     final ids = <String>[_pId, ..._qToXIds]; // only P..X
     final Map<String, String> out = {};
@@ -192,14 +192,13 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     return out;
   }
 
-  // -------------------- NEW: Next from Page-1 (fetch etiologies) -------------
+  // -------------------- Next from Page-1 (fetch etiologies) -------------
   Future<void> _onNextFromHistory() async {
     // If P != Yes → skip filtering and allow all options
     if (!_pIsYes) {
       // wipe Q..X before moving
       for (final id in _qToXIds) {
-        final q = _findById(id);
-        if (q != null) _answers.remove(q.title);
+        _answers.remove(id);
       }
       setState(() => _enabledEtiologies = null);
       _goToStep(1);
@@ -215,26 +214,29 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
           .map((e) => e.toString())
           .toList();
 
-      final uiOptions = _findById('etiology_assessment')?.options ?? const <String>[];
+      final uiOptions =
+          _findById('etiology_assessment')?.options ?? const <String>[];
       final allowed = backendList.toSet().intersection(uiOptions.toSet());
 
       setState(() {
         _enabledEtiologies = allowed.isEmpty ? null : allowed;
-        // prune any previously-selected etiologies that are now disabled
         final q = _findById('etiology_assessment');
         if (q != null) {
-          final current = List<String>.from((_answers[q.title] as List?) ?? const []);
+          final current =
+              List<String>.from((_answers[q.id] as List?) ?? const []);
           current.removeWhere((opt) =>
               opt != 'Not sure' &&
               _enabledEtiologies != null &&
               !_enabledEtiologies!.contains(opt));
-          _answers[q.title] = current;
+          _answers[q.id] = current;
         }
       });
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not fetch etiology suggestions. Showing all.')),
+        const SnackBar(
+            content:
+                Text('Could not fetch etiology suggestions. Showing all.')),
       );
       setState(() => _enabledEtiologies = null); // allow all on failure
     } finally {
@@ -259,7 +261,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
       final visitId = await ApiService().createVisit(
         patientId: _patient.id,
         toothNumber: _toothNumberController.text,
-        answers: _answers.map((k, v) => MapEntry(k, v is List ? v : v.toString())),
+        answers: _answers
+            .map((k, v) => MapEntry(k, v is List ? v : v.toString())),
+        // keep these if your backend reads them separately
         pulpDiagnosis: _answers['Pulp Diagnosis'] ?? '',
         periapicalDisease: _answers['Periapical Disease'] ?? '',
         etiology: _answers['Etiology'] ?? '',
@@ -331,7 +335,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
             // Page header
             SliverToBoxAdapter(
               child: _buildPageHeader(
-                title: _onHistory ? 'Patient History' : 'Clinical & Radiographic Evaluation',
+                title: _onHistory
+                    ? 'Patient History'
+                    : 'Clinical & Radiographic Evaluation',
                 subtitle: _onHistory
                     ? 'Answer a few short questions about symptoms and history.'
                     : 'Record clinical tests and radiographic findings.',
@@ -403,7 +409,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                     _onHistory
                         ? _buildNavigationButton(
                             _loadingEtiologies ? 'Loading…' : 'Next',
-                            _historyValid() && !_loadingEtiologies ? _onNextFromHistory : null,
+                            _historyValid() && !_loadingEtiologies
+                                ? _onNextFromHistory
+                                : null,
                           )
                         : _buildNavigationButton(
                             _submitting ? 'Submitting...' : 'Submit',
@@ -428,7 +436,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         children: [
           Text(title,
               style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF111827))),
           const SizedBox(height: 6),
           Text(
             subtitle,
@@ -512,6 +522,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               children: [
                 Expanded(
                   child: Text(
+                    // Show the human-readable title (NO Excel IDs in UI)
                     '${q.title}${q.isOptional ? ' (Optional)' : ''}',
                     style: const TextStyle(
                       fontSize: 18,
@@ -527,19 +538,22 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(q.text, style: const TextStyle(fontSize: 16, color: Colors.black87)),
+            Text(q.text,
+                style:
+                    const TextStyle(fontSize: 16, color: Colors.black87)),
             const SizedBox(height: 12),
 
             if (isMulti)
               ...q.options.map((option) {
-                final selected = (_answers[q.title] as List?) ?? const [];
+                final selected = (_answers[q.id] as List?) ?? const [];
                 final notSureSelected = selected.contains('Not sure');
 
                 // filter rule: if _enabledEtiologies is null => allow all; always allow "Not sure"
                 final allowedByFilter = _enabledEtiologies == null ||
                     option == 'Not sure' ||
                     _enabledEtiologies!.contains(option);
-                final isEnabled = allowedByFilter && (!notSureSelected || option == 'Not sure');
+                final isEnabled =
+                    allowedByFilter && (!notSureSelected || option == 'Not sure');
 
                 return CheckboxListTile(
                   title: Text(option),
@@ -547,18 +561,19 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                   value: selected.contains(option),
                   onChanged: (selectedVal) {
                     setState(() {
-                      final current = List<String>.from((_answers[q.title] as List?) ?? const []);
+                      final current =
+                          List<String>.from((_answers[q.id] as List?) ?? const []);
                       if (selectedVal == true) {
                         if (option == 'Not sure') {
-                          _answers[q.title] = ['Not sure'];
+                          _answers[q.id] = ['Not sure'];
                         } else {
                           current.remove('Not sure');
                           if (!current.contains(option)) current.add(option);
-                          _answers[q.title] = current;
+                          _answers[q.id] = current;
                         }
                       } else {
                         current.remove(option);
-                        _answers[q.title] = current;
+                        _answers[q.id] = current;
                       }
                     });
                   },
@@ -568,19 +583,19 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               ...q.options.map((option) => RadioListTile(
                     title: Text(option),
                     value: option,
-                    groupValue: _answers[q.title],
+                    groupValue: _answers[q.id],
                     onChanged: (val) {
                       setState(() {
-                        _answers[q.title] = val;
+                        _answers[q.id] = val;
                         if (isChiefComplaint && val == 'No') {
-                          _answers.remove('Chief Complaint Text');
+                          _answers.remove('chief_complaint_text');
                           _chiefComplaintTextController.clear();
                         }
                       });
                     },
                   )),
 
-            if (isChiefComplaint && _answers[q.title] == 'Yes') ...[
+            if (isChiefComplaint && _answers[q.id] == 'Yes') ...[
               const SizedBox(height: 8),
               TextField(
                 controller: _chiefComplaintTextController,
@@ -591,7 +606,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                 ),
                 onChanged: (txt) {
                   setState(() {
-                    _answers['Chief Complaint Text'] = txt;
+                    _answers['chief_complaint_text'] = txt;
                   });
                 },
               ),
@@ -601,7 +616,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
-                onPressed: () => _clearAnswer(q.title),
+                onPressed: () => _clearAnswer(q.id),
                 icon: const Icon(Icons.clear),
                 label: const Text('Clear answer'),
               ),
@@ -618,8 +633,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF7E22CE),
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24)),
       ),
       child: Text(label),
     );
@@ -636,7 +653,8 @@ class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => 120;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Material(
       color: const Color(0xFFF8FAFC),
       elevation: 4,
@@ -645,5 +663,7 @@ class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => true;
+  bool shouldRebuild(
+          covariant SliverPersistentHeaderDelegate oldDelegate) =>
+      true;
 }

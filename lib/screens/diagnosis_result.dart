@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/services/api_service.dart';
+import 'package:endo_frontend/data/diagnosis_questions.dart'; // <-- use titles from here
 
 class DiagnosisResultScreen extends StatefulWidget {
   final int visitId;
@@ -20,6 +21,29 @@ class DiagnosisResultScreen extends StatefulWidget {
 class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
   Map<String, dynamic>? visitData;
   bool isLoading = true;
+
+  /// Build a label map: question id -> human readable title
+  late final Map<String, String> _labelById = {
+    for (final q in diagnosisQuestions) q.id: q.title,
+    // extra (non-question) fields we show in answers:
+    'etiology_assessment': 'Etiology Assessment',
+    'endo_history': 'Endodontic Treatment History',
+    'chief_complaint': 'Chief Complaint',
+    'chief_complaint_text': 'Chief Complaint (notes)',
+    'radiographic_findings': 'Radiographic Findings',
+  };
+
+  /// For ordering on the summary page: same order as the questionnaire
+  late final List<String> _answerOrder = [
+    // History page
+    'chief_complaint',
+    'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+    // Evaluation page
+    'etiology_assessment',
+    'endo_history',
+    'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+    'radiographic_findings',
+  ];
 
   @override
   void initState() {
@@ -42,6 +66,31 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
         const SnackBar(content: Text('Failed to load visit data')),
       );
     }
+  }
+
+  String _labelFor(String key) => _labelById[key] ?? key;
+
+  String _stringifyValue(dynamic v) {
+    if (v == null) return '-';
+    if (v is List) return v.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).join(', ');
+    return v.toString();
+  }
+
+  List<MapEntry<String, dynamic>> _orderedAnswers(Map<String, dynamic> answers) {
+    final keys = answers.keys.toSet();
+    final ordered = <MapEntry<String, dynamic>>[];
+
+    // add in defined order
+    for (final k in _answerOrder) {
+      if (keys.remove(k)) {
+        ordered.add(MapEntry(k, answers[k]));
+      }
+    }
+    // append any remaining keys (unexpected/new)
+    for (final k in keys) {
+      ordered.add(MapEntry(k, answers[k]));
+    }
+    return ordered;
   }
 
   @override
@@ -72,9 +121,9 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                                 content: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _infoRow('Visit Date:', visitData!['visit_date']),
+                                    _infoRow('Visit Date:', visitData!['visit_date'] ?? '-'),
                                     _infoRow('Patient:', widget.patientName),
-                                    _infoRow('Tooth Number:', visitData!['tooth_number']),
+                                    _infoRow('Tooth Number:', visitData!['tooth_number'] ?? '-'),
                                   ],
                                 ),
                               ),
@@ -95,13 +144,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                                 ),
                               _buildSectionCard(
                                 title: 'Diagnosis Answers',
-                                content: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: (visitData!['answers'] as Map<String, dynamic>)
-                                      .entries
-                                      .map((entry) => _infoRow(entry.key, entry.value.toString()))
-                                      .toList(),
-                                ),
+                                content: _buildAnswersList(),
                               ),
                               _buildSectionCard(
                                 title: 'Diagnosis Result',
@@ -139,6 +182,22 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
     );
   }
 
+  /// Render the key→value answers with pretty labels and ordering.
+  Widget _buildAnswersList() {
+    final Map<String, dynamic> answers =
+        (visitData!['answers'] as Map<String, dynamic>?) ?? const {};
+    final ordered = _orderedAnswers(answers);
+
+    if (ordered.isEmpty) return const Text('No answers recorded.');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: ordered
+          .map((e) => _infoRow(_labelFor(e.key), _stringifyValue(e.value)))
+          .toList(),
+    );
+  }
+
   List<Widget> _buildDiagnosisCards() {
     final List results = visitData!['results'] ?? [];
     if (results.isEmpty) {
@@ -146,34 +205,34 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
     }
 
     return results.map((res) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          )
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('🦷 Pulp Diagnosis: ${res['pulp_diagnosis'] ?? 'N/A'}',
-              style: const TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Text('🦠 Periapical Disease: ${res['periapical_disease'] ?? 'N/A'}'),
-          const SizedBox(height: 6),
-          Text('🎯 Etiology: ${res['etiology'] ?? 'N/A'}'),
-        ],
-      ),
-    );
-  }).toList();
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            )
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('🦷 Pulp Diagnosis: ${res['pulp_diagnosis'] ?? 'N/A'}',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Text('🦠 Periapical Disease: ${res['periapical_disease'] ?? 'N/A'}'),
+            const SizedBox(height: 6),
+            Text('🎯 Etiology: ${res['etiology'] ?? 'N/A'}'),
+          ],
+        ),
+      );
+    }).toList();
   }
 
   Widget _buildSectionCard({required String title, required Widget content}) {
@@ -205,10 +264,18 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Flexible(
+            flex: 4,
+            child: Text('$label ',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
           const SizedBox(width: 8),
-          Expanded(child: Text(value)),
+          Expanded(
+            flex: 7,
+            child: Text(value),
+          ),
         ],
       ),
     );

@@ -99,7 +99,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     title: 'Pain quality',
     text: 'Does the pain have any of the following qualities?',
     help: 'Pain quality contributes to the pulpal/periapical differential.',
-    options: ['No', 'Sharp', 'Throbbing'],
+    options: ['No', 'Sharp', 'Throbbing', 'Dull'],
   ),
 
   // X
@@ -151,7 +151,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
   ),
 
   DiagnosisQuestion(
-    id: 'cold_test',
+    id: 'E',
     title: 'Cold Test',
     text: 'How does the patient respond to cold stimulus on the affected tooth?',
     help: 'Lingering or exaggerated response suggests irreversible pulpitis.',
@@ -159,7 +159,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
   ),
 
   DiagnosisQuestion(
-    id: 'heat_test',
+    id: 'F',
     title: 'Heat Test',
     text: 'How does the patient respond to heat stimulus?',
     help: 'Lingering response to heat may indicate irreversible pulpitis.',
@@ -168,7 +168,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
   ),
 
   DiagnosisQuestion(
-    id: 'ept',
+    id: 'G',
     title: 'Electric Pulp Test (EPT)',
     text: 'What is the pulp response to EPT?',
     help: 'No response may indicate pulp necrosis.',
@@ -177,7 +177,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
   ),
 
   DiagnosisQuestion(
-    id: 'palpation',
+    id: 'H',
     title: 'Palpation Test',
     text: 'Is there tenderness on palpation of the periapical area?',
     help: 'Sensitivity suggests periapical inflammation.',
@@ -185,7 +185,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
   ),
 
   DiagnosisQuestion(
-    id: 'percussion',
+    id: 'I',
     title: 'Percussion Test',
     text: 'Does the patient feel pain when the tooth is tapped (vertically)?',
     help: 'May indicate PDL or apical inflammation.',
@@ -193,7 +193,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
   ),
 
   DiagnosisQuestion(
-    id: 'bite_test',
+    id: 'J',
     title: 'Bite Test',
     text: 'Does the patient feel pain when biting on a tooth slooth or cotton roll?',
     help: 'Useful for cracked tooth or apical involvement.',
@@ -201,7 +201,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
   ),
 
   DiagnosisQuestion(
-    id: 'swelling',
+    id: 'K',
     title: 'Swelling',
     text: 'Is there any visible or palpable swelling?',
     help: 'May indicate spreading infection.',
@@ -209,7 +209,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
   ),
 
   DiagnosisQuestion(
-    id: 'sinus_tract',
+    id: 'L',
     title: 'Sinus Tract',
     text: 'Is a sinus tract present upon clinical inspection?',
     help: 'A draining fistula indicates chronic periapical abscess.',
