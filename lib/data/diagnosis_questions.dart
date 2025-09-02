@@ -217,14 +217,14 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
   ),
 
   DiagnosisQuestion(
-    id: 'radiographic_findings',
+    id: 'N',
     title: 'Radiographic Findings',
     text: 'What does the periapical radiograph reveal?',
     help: 'Evaluate periapical radiolucency, PDL widening, resorption, etc.',
     options: [
-      'No abnormal findings',
+      'Normal',
       'PDL widening',
-      'Periapical radiolucency',
+      'Periapical lesion (> 2 mm)',
     ],
   ),
 ];
