@@ -589,6 +589,80 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> updateVisit({
+    required int visitId,
+    Map<String, dynamic>? fields,        // for JSON fields like answers, tooth_number, etc.
+    XFile? toothImage,                   // optional new image
+    Uint8List? webImageBytes,            // web-only image
+    bool? removeToothImage,              // explicit remove flag
+  }) async {
+    final streamed = await _sendAuthorizedMultipart((token) async {
+      final uri = Uri.parse('$apiUrl/visits/$visitId/');
+      final request = http.MultipartRequest('PATCH', uri)
+        ..headers['Authorization'] = 'Bearer $token';
+
+      if (fields != null) {
+        fields.forEach((key, value) {
+          if (value != null) {
+            if (value is Map || value is List) {
+              request.fields[key] = jsonEncode(value);
+            } else {
+              request.fields[key] = value.toString();
+            }
+          }
+        });
+      }
+
+      if (removeToothImage == true) {
+        request.fields['remove_tooth_image'] = 'true';
+      }
+
+      if (toothImage != null) {
+        if (kIsWeb) {
+          if (webImageBytes == null) {
+            throw Exception("Web image bytes are null.");
+          }
+          request.files.add(http.MultipartFile.fromBytes(
+            'tooth_image',
+            webImageBytes,
+            filename: toothImage.name,
+            contentType: MediaType('image', 'png'),
+          ));
+        } else {
+          request.files.add(await http.MultipartFile.fromPath(
+            'tooth_image',
+            toothImage.path,
+          ));
+        }
+      }
+
+      return request;
+    });
+
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw ApiException('Failed to update visit: ${response.statusCode} ${response.body}');
+  }
+
+  Future<void> deleteVisit(int visitId) async {
+    final response = await _sendAuthorized(
+      (token) => http.delete(
+        Uri.parse('$apiUrl/visits/$visitId/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw ApiException('Failed to delete visit: ${response.statusCode} ${response.body}');
+    }
+  }
+
+
   // --- Notifications --------------------------------------------------------
 
   Future<List<NotificationItem>> fetchNotifications() async {

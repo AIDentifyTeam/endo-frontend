@@ -7,11 +7,13 @@ import 'package:endo_frontend/data/diagnosis_questions.dart'; // <-- use titles 
 class DiagnosisResultScreen extends StatefulWidget {
   final int visitId;
   final String patientName;
+  final bool isEditing;
 
   const DiagnosisResultScreen({
     super.key,
     required this.visitId,
     required this.patientName,
+    this.isEditing = false,
   });
 
   @override

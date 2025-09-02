@@ -24,8 +24,7 @@ class NewDiagnosisScreen extends StatefulWidget {
 class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _toothNumberController = TextEditingController();
-  final TextEditingController _chiefComplaintTextController =
-      TextEditingController();
+  final TextEditingController _chiefComplaintTextController = TextEditingController();
 
   XFile? _selectedImage;
   Uint8List? _webImageBytes;
@@ -51,10 +50,69 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   Set<String>? _enabledEtiologies; // null => allow all (no filtering)
   bool _loadingEtiologies = false;
 
+  // ----------- Edit mode wiring -----------
+  bool _isEdit = false;
+  int? _visitId;
+  bool _removeExistingImage = false;
+  String? _existingImageUrl; // optional (if your API returns it)
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _patient = ModalRoute.of(context)!.settings.arguments as Patient;
+
+    final args = ModalRoute.of(context)!.settings.arguments;
+
+    if (args is Patient) {
+      // CREATE FLOW
+      _patient = args;
+      _isEdit = false;
+    } else if (args is Map) {
+      // EDIT FLOW
+      _isEdit = (args['mode'] == 'edit');
+      _patient = args['patient'] as Patient;
+      _visitId = args['visitId'] as int?;
+      if (_isEdit && _visitId != null) {
+        _loadForEdit(_visitId!);
+      }
+    } else {
+      // Fallback – you can also assert here
+      throw ArgumentError('Invalid arguments for NewDiagnosisScreen');
+    }
+  }
+
+  Future<void> _loadForEdit(int visitId) async {
+    try {
+      final data = await ApiService().fetchVisitById(visitId);
+
+      // Prefill tooth number
+      _toothNumberController.text = (data['tooth_number'] ?? '').toString();
+
+      // Prefill answers
+      final raw = data['answers'];
+      if (raw is Map) {
+        // coerce dynamic map to <String,dynamic>
+        _answers.clear();
+        raw.forEach((k, v) => _answers[k.toString()] = v);
+      }
+
+      // If your API returns existing image URL, show a hint (optional)
+      _existingImageUrl = (data['tooth_image'] as String?);
+
+      // If chief complaint text exists
+      final ccText = _answers['chief_complaint_text'];
+      if (ccText is String) {
+        _chiefComplaintTextController.text = ccText;
+      }
+
+      // Editing: we don't auto-run etiology fetch; user can still go Next
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load visit: $e')),
+      );
+      // Still allow editing of whatever we have.
+    }
   }
 
   @override
@@ -100,13 +158,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   List<DiagnosisQuestion> get _evaluationQuestions {
     final idsHistory = <String>{_chiefId, _pId, ..._qToXIds};
-    return diagnosisQuestions
-        .where((q) => !idsHistory.contains(q.id))
-        .toList();
+    return diagnosisQuestions.where((q) => !idsHistory.contains(q.id)).toList();
   }
 
-  List<DiagnosisQuestion> get _activeQuestions =>
-      _onHistory ? _historyQuestions : _evaluationQuestions;
+  List<DiagnosisQuestion> get _activeQuestions => _onHistory ? _historyQuestions : _evaluationQuestions;
 
   // -------------------- Validation for Next --------------------
   bool _historyValid() {
@@ -153,6 +208,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     if (picked != null) {
       setState(() {
         _selectedImage = picked;
+        _removeExistingImage = false; // user provided a new file
         if (kIsWeb) {
           picked.readAsBytes().then((bytes) {
             if (!mounted) return;
@@ -194,6 +250,12 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   // -------------------- Next from Page-1 (fetch etiologies) -------------
   Future<void> _onNextFromHistory() async {
+    if (_toothNumberController.text.trim().isEmpty) {
+      setState(() => _toothNumberError = 'Tooth number is required');
+      return;
+    } else {
+      setState(() => _toothNumberError = null);
+    }
     // If P != Yes → skip filtering and allow all options
     if (!_pIsYes) {
       // wipe Q..X before moving
@@ -214,29 +276,23 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
           .map((e) => e.toString())
           .toList();
 
-      final uiOptions =
-          _findById('etiology_assessment')?.options ?? const <String>[];
+      final uiOptions = _findById('etiology_assessment')?.options ?? const <String>[];
       final allowed = backendList.toSet().intersection(uiOptions.toSet());
 
       setState(() {
         _enabledEtiologies = allowed.isEmpty ? null : allowed;
         final q = _findById('etiology_assessment');
         if (q != null) {
-          final current =
-              List<String>.from((_answers[q.id] as List?) ?? const []);
+          final current = List<String>.from((_answers[q.id] as List?) ?? const []);
           current.removeWhere((opt) =>
-              opt != 'Not sure' &&
-              _enabledEtiologies != null &&
-              !_enabledEtiologies!.contains(opt));
+              opt != 'Not sure' && _enabledEtiologies != null && !_enabledEtiologies!.contains(opt));
           _answers[q.id] = current;
         }
       });
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text('Could not fetch etiology suggestions. Showing all.')),
+        const SnackBar(content: Text('Could not fetch etiology suggestions. Showing all.')),
       );
       setState(() => _enabledEtiologies = null); // allow all on failure
     } finally {
@@ -246,24 +302,48 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     }
   }
 
-  // -------------------- Submit --------------------
+  // -------------------- Submit / Save --------------------
   Future<void> _submitDiagnosis() async {
-    if (_toothNumberController.text.trim().isEmpty) {
-      setState(() => _toothNumberError = 'Tooth number is required');
-      return;
-    } else {
-      setState(() => _toothNumberError = null);
-    }
-
     setState(() => _submitting = true);
 
     try {
+      if (_isEdit && _visitId != null) {
+        // EDIT: save changes
+        await ApiService().updateVisit(
+          visitId: _visitId!,
+          fields: {
+            'tooth_number': _toothNumberController.text,
+            'answers': _answers.map((k, v) => MapEntry(k, v is List ? v : v.toString())),
+          },
+          toothImage: _selectedImage,
+          webImageBytes: _webImageBytes,
+          removeToothImage: _removeExistingImage,
+        );
+
+        if (!mounted) return;
+
+        // ➜ After saving, go to Diagnosis Result for this visit
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DiagnosisResultScreen(
+              visitId: _visitId!,
+              patientName: '${_patient.firstName} ${_patient.lastName}',
+            ),
+          ),
+        );
+
+        if (!mounted) return;
+        // When leaving result page, return to profile and refresh list
+        Navigator.pop(context, 'refresh');
+        return;
+      }
+
+      // ---- CREATE FLOW (unchanged) ----
       final visitId = await ApiService().createVisit(
         patientId: _patient.id,
         toothNumber: _toothNumberController.text,
-        answers: _answers
-            .map((k, v) => MapEntry(k, v is List ? v : v.toString())),
-        // keep these if your backend reads them separately
+        answers: _answers.map((k, v) => MapEntry(k, v is List ? v : v.toString())),
         pulpDiagnosis: _answers['Pulp Diagnosis'] ?? '',
         periapicalDisease: _answers['Periapical Disease'] ?? '',
         etiology: _answers['Etiology'] ?? '',
@@ -295,6 +375,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     }
   }
 
+
   // ==================== UI ====================
   @override
   Widget build(BuildContext context) {
@@ -310,9 +391,11 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
             SliverPersistentHeader(
               pinned: true,
               delegate: _SliverHeaderDelegate(
-                child: const AppHeader(
-                  title: 'New Diagnosis',
-                  subtitle: 'Record patient case step-by-step',
+                child: AppHeader(
+                  title: _isEdit ? 'Edit Diagnosis' : 'New Diagnosis',
+                  subtitle: _isEdit
+                      ? 'Update answers and attachments for this visit.'
+                      : 'Record patient case step-by-step',
                   icon: Icons.medical_services,
                 ),
               ),
@@ -335,9 +418,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
             // Page header
             SliverToBoxAdapter(
               child: _buildPageHeader(
-                title: _onHistory
-                    ? 'Patient History'
-                    : 'Clinical & Radiographic Evaluation',
+                title: _onHistory ? 'Patient History' : 'Clinical & Radiographic Evaluation',
                 subtitle: _onHistory
                     ? 'Answer a few short questions about symptoms and history.'
                     : 'Record clinical tests and radiographic findings.',
@@ -402,19 +483,15 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                 child: Row(
                   children: [
                     if (!_onHistory)
-                      _buildNavigationButton('Back', () {
-                        _goToStep(0);
-                      }),
+                      _buildNavigationButton('Back', () => _goToStep(0)),
                     const Spacer(),
                     _onHistory
                         ? _buildNavigationButton(
                             _loadingEtiologies ? 'Loading…' : 'Next',
-                            _historyValid() && !_loadingEtiologies
-                                ? _onNextFromHistory
-                                : null,
+                            _historyValid() && !_loadingEtiologies ? _onNextFromHistory : null,
                           )
                         : _buildNavigationButton(
-                            _submitting ? 'Submitting...' : 'Submit',
+                            _submitting ? (_isEdit ? 'Saving…' : 'Submitting…') : (_isEdit ? 'Save changes' : 'Submit'),
                             _submitting ? null : _submitDiagnosis,
                           ),
                   ],
@@ -436,9 +513,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         children: [
           Text(title,
               style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827))),
+                  fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
           const SizedBox(height: 6),
           Text(
             subtitle,
@@ -477,17 +552,32 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.photo),
-              label: const Text("Upload Tooth Photo"),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.photo_outlined),
+                  label: Text(_isEdit ? "Replace / Upload Photo" : "Upload Tooth Photo"),
+                ),
+                const SizedBox(width: 12),
+                if (_isEdit && _existingImageUrl != null && _selectedImage == null)
+                  Expanded(
+                    child: CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Remove existing photo'),
+                      value: _removeExistingImage,
+                      onChanged: (v) => setState(() => _removeExistingImage = v ?? false),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                  ),
+              ],
             ),
             if (_selectedImage != null) ...[
               const SizedBox(height: 16),
               kIsWeb
-                  ? _webImageBytes != null
+                  ? (_webImageBytes != null
                       ? Image.memory(_webImageBytes!, height: 100)
-                      : const CircularProgressIndicator()
+                      : const CircularProgressIndicator())
                   : Image.file(io.File(_selectedImage!.path), height: 100),
             ],
           ],
@@ -514,15 +604,11 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Question $displayIndex/$totalCount',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
-            ),
+            Text('Question $displayIndex/$totalCount', style: const TextStyle(fontSize: 14, color: Colors.grey)),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    // Show the human-readable title (NO Excel IDs in UI)
                     '${q.title}${q.isOptional ? ' (Optional)' : ''}',
                     style: const TextStyle(
                       fontSize: 18,
@@ -538,9 +624,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(q.text,
-                style:
-                    const TextStyle(fontSize: 16, color: Colors.black87)),
+            Text(q.text, style: const TextStyle(fontSize: 16, color: Colors.black87)),
             const SizedBox(height: 12),
 
             if (isMulti)
@@ -549,11 +633,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                 final notSureSelected = selected.contains('Not sure');
 
                 // filter rule: if _enabledEtiologies is null => allow all; always allow "Not sure"
-                final allowedByFilter = _enabledEtiologies == null ||
-                    option == 'Not sure' ||
-                    _enabledEtiologies!.contains(option);
-                final isEnabled =
-                    allowedByFilter && (!notSureSelected || option == 'Not sure');
+                final allowedByFilter =
+                    _enabledEtiologies == null || option == 'Not sure' || _enabledEtiologies!.contains(option);
+                final isEnabled = allowedByFilter && (!notSureSelected || option == 'Not sure');
 
                 return CheckboxListTile(
                   title: Text(option),
@@ -561,8 +643,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                   value: selected.contains(option),
                   onChanged: (selectedVal) {
                     setState(() {
-                      final current =
-                          List<String>.from((_answers[q.id] as List?) ?? const []);
+                      final current = List<String>.from((_answers[q.id] as List?) ?? const []);
                       if (selectedVal == true) {
                         if (option == 'Not sure') {
                           _answers[q.id] = ['Not sure'];
@@ -633,10 +714,8 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF7E22CE),
         foregroundColor: Colors.white,
-        padding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24)),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
       child: Text(label),
     );
@@ -653,8 +732,7 @@ class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => 120;
 
   @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Material(
       color: const Color(0xFFF8FAFC),
       elevation: 4,
@@ -663,7 +741,5 @@ class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(
-          covariant SliverPersistentHeaderDelegate oldDelegate) =>
-      true;
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => true;
 }
