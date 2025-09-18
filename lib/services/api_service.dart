@@ -498,18 +498,13 @@ class ApiService {
     }
   }
 
-  Future<int> createVisit({
+  Future<Map<String, dynamic>> createVisit({
     required int patientId,
     required String toothNumber,
     required Map<String, dynamic> answers,
-    String? pulpDiagnosis,
-    String? periapicalDisease,
-    String? etiology,
     XFile? toothImage,
     Uint8List? webImageBytes,
   }) async {
-    String? nn(String? v) => (v == null || v.trim().isEmpty) ? null : v.trim();
-
     final streamedResponse = await _sendAuthorizedMultipart((token) async {
       final uri = Uri.parse('$apiUrl/visits/');
       final request = http.MultipartRequest('POST', uri)
@@ -518,20 +513,10 @@ class ApiService {
         ..fields['tooth_number'] = toothNumber
         ..fields['answers'] = jsonEncode(answers);
 
-      if (nn(pulpDiagnosis) != null) {
-        request.fields['pulp_diagnosis'] = nn(pulpDiagnosis)!;
-      }
-      if (nn(periapicalDisease) != null) {
-        request.fields['periapical_disease'] = nn(periapicalDisease)!;
-      }
-      if (nn(etiology) != null) {
-        request.fields['etiology'] = nn(etiology)!;
-      }
-
       if (toothImage != null) {
         if (kIsWeb) {
           if (webImageBytes == null) {
-            throw Exception("Web image bytes are null.");
+            throw ApiException('Image data missing.');
           }
           request.files.add(http.MultipartFile.fromBytes(
             'tooth_image',
@@ -552,24 +537,35 @@ class ApiService {
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 201) {
-      final json = jsonDecode(response.body);
-      return json['id'];
+      // Return the whole Visit JSON so UI can branch on results.source
+      return jsonDecode(response.body) as Map<String, dynamic>;
     }
 
-    if (response.statusCode == 400) {
+    // Bubble up server-side field errors (incl. case_id unique)
+    if (response.statusCode == 400 || response.statusCode == 409 || response.statusCode == 422) {
       try {
         final err = jsonDecode(response.body);
-        if (err is Map) {
-          for (final v in err.values) {
+        if (err is Map<String, dynamic>) {
+          // Prefer first field error message
+          for (final entry in err.entries) {
+            final v = entry.value;
             if (v is List && v.isNotEmpty && v.first is String) {
-              throw ApiException(v.first);
+              throw ApiException('${entry.key}: ${v.first}');
+            } else if (v is String) {
+              throw ApiException('${entry.key}: $v');
             }
           }
+          // or a non-field error
+          if (err['detail'] is String) throw ApiException(err['detail']);
         }
-      } catch (_) {}
+      } catch (_) {
+        // fall through
+      }
     }
-    throw ApiException('Failed to create visit');
+
+    throw ApiException('Failed to create visit (${response.statusCode}).');
   }
+
 
   Future<Map<String, dynamic>> fetchVisitById(int visitId) async {
     final response = await _sendAuthorized(
