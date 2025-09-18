@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/services/api_service.dart';
-import 'package:endo_frontend/data/diagnosis_questions.dart'; // <-- use titles from here
+import 'package:endo_frontend/data/diagnosis_questions.dart'; // <-- titles from here
 
 class DiagnosisResultScreen extends StatefulWidget {
   final int visitId;
@@ -27,12 +27,12 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
   /// Build a label map: question id -> human readable title
   late final Map<String, String> _labelById = {
     for (final q in diagnosisQuestions) q.id: q.title,
-    // extra (non-question) fields we show in answers:
+    // extras we show in answers:
     'etiology_assessment': 'Etiology Assessment',
     'endo_history': 'Endodontic Treatment History',
     'chief_complaint': 'Chief Complaint',
     'chief_complaint_text': 'Chief Complaint (notes)',
-    'radiographic_findings': 'Radiographic Findings',
+    'N': 'Radiographic Findings', // backend uses N in answers
   };
 
   /// For ordering on the summary page: same order as the questionnaire
@@ -44,7 +44,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
     'etiology_assessment',
     'endo_history',
     'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
-    'radiographic_findings',
+    'N', // radiographic
   ];
 
   @override
@@ -56,11 +56,13 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
   Future<void> fetchVisitData() async {
     try {
       final data = await ApiService().fetchVisitById(widget.visitId);
+      if (!mounted) return;
       setState(() {
         visitData = data;
         isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });
@@ -74,7 +76,12 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
 
   String _stringifyValue(dynamic v) {
     if (v == null) return '-';
-    if (v is List) return v.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).join(', ');
+    if (v is List) {
+      return v
+          .map((e) => e?.toString() ?? '')
+          .where((s) => s.trim().isNotEmpty)
+          .join(', ');
+    }
     return v.toString();
   }
 
@@ -129,6 +136,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                                   ],
                                 ),
                               ),
+
                               if (visitData!['tooth_image'] != null &&
                                   visitData!['tooth_image'].toString().isNotEmpty)
                                 _buildSectionCard(
@@ -144,10 +152,12 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                                     ),
                                   ),
                                 ),
+
                               _buildSectionCard(
                                 title: 'Diagnosis Answers',
                                 content: _buildAnswersList(),
                               ),
+
                               _buildSectionCard(
                                 title: 'Diagnosis Result',
                                 content: Column(
@@ -155,6 +165,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                                   children: _buildDiagnosisCards(),
                                 ),
                               ),
+
                               const SizedBox(height: 16),
                               SizedBox(
                                 width: double.infinity,
@@ -187,7 +198,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
   /// Render the key→value answers with pretty labels and ordering.
   Widget _buildAnswersList() {
     final Map<String, dynamic> answers =
-        (visitData!['answers'] as Map<String, dynamic>?) ?? const {};
+        (visitData!['answers'] as Map<String, dynamic>? ?? const {});
     final ordered = _orderedAnswers(answers);
 
     if (ordered.isEmpty) return const Text('No answers recorded.');
@@ -201,40 +212,125 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
   }
 
   List<Widget> _buildDiagnosisCards() {
-    final List results = visitData!['results'] ?? [];
-    if (results.isEmpty) {
+    final resultsObj = visitData!['results'] as Map<String, dynamic>?;
+    if (resultsObj == null || resultsObj.isEmpty) {
       return [const Text('No diagnosis results available.')];
     }
 
-    return results.map((res) {
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            )
-          ],
+    final source = (resultsObj['source'] ?? '').toString();
+    final engineVer = (resultsObj['engine_version'] ?? '').toString();
+
+    // RULES ENGINE
+    if (source == 'rules_engine') {
+      final list = (resultsObj['results'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+
+      if (list.isEmpty) {
+        return [
+          _badgeRow(source: 'Rule-based', engineVer: engineVer),
+          const SizedBox(height: 8),
+          const Text('No deterministic match found.'),
+        ];
+      }
+
+      return [
+        _badgeRow(source: 'Rule-based', engineVer: engineVer),
+        const SizedBox(height: 12),
+        ...list.map((res) {
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                )
+              ],
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  res['pulp_diagnosis'] ?? 'N/A',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                Text('Periapical: ${res['periapical_disease'] ?? 'N/A'}'),
+                const SizedBox(height: 6),
+                Text('Etiology: ${res['etiology'] ?? 'N/A'}'),
+              ],
+            ),
+          );
+        }),
+      ];
+    }
+
+    // AI FALLBACK
+    if (source == 'ai_fallback_gemini') {
+      final aiText = (resultsObj['ai_text'] ?? resultsObj['ai'] ?? '').toString();
+      return [
+        _badgeRow(source: 'AI-assisted', engineVer: engineVer, icon: Icons.smart_toy_outlined),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              )
+            ],
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                aiText.isEmpty ? 'No AI suggestion available.' : aiText,
+                style: const TextStyle(fontFamily: 'monospace', height: 1.3),
+                softWrap: true,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Not a diagnosis. For clinical guidance only.',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ],
+          ),
         ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('🦷 Pulp Diagnosis: ${res['pulp_diagnosis'] ?? 'N/A'}',
-                style: const TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            Text('🦠 Periapical Disease: ${res['periapical_disease'] ?? 'N/A'}'),
-            const SizedBox(height: 6),
-            Text('🎯 Etiology: ${res['etiology'] ?? 'N/A'}'),
-          ],
+      ];
+    }
+
+    // NONE / unknown
+    return [
+      _badgeRow(source: 'No result', engineVer: engineVer),
+      const SizedBox(height: 8),
+      const Text('No results available.'),
+    ];
+  }
+
+  Widget _badgeRow({required String source, required String engineVer, IconData icon = Icons.fact_check_outlined}) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.indigo),
+        const SizedBox(width: 8),
+        Text(
+          source,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.indigo),
         ),
-      );
-    }).toList();
+        const Spacer(),
+        Text('v$engineVer', style: Theme.of(context).textTheme.labelSmall),
+      ],
+    );
   }
 
   Widget _buildSectionCard({required String title, required Widget content}) {
