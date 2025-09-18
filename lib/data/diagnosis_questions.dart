@@ -57,27 +57,17 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     options: ['No', 'For a few seconds', 'Longer than few seconds'],
   ),
 
-  // S
   DiagnosisQuestion(
     id: 'S',
-    title: 'Biting/chewing triggers pain',
-    text: 'Does biting or chewing trigger or aggravate the pain?',
-    help: 'Bite-provoked pain may suggest cracked tooth or apical involvement.',
-    options: ['Yes', 'No'],
-  ),
-
-  // T
-  DiagnosisQuestion(
-    id: 'T',
-    title: 'Ability to function on painful side',
-    text: 'Are you able to function (bite or chew) on the painful side?',
-    help: 'Functional limitation indicates severity and PDL involvement.',
+    title: 'Biting/chewing triggers pain & function on painful side',
+    text: 'Does biting or chewing trigger/aggravate the pain? Are you incapable of functioning (biting or chewing) on the painful side?',
+    help: 'Bite-provoked pain may suggest cracked tooth or apical involvement. Functional limitation indicates severity and PDL involvement.',
     options: ['Yes', 'No'],
   ),
 
   // U
   DiagnosisQuestion(
-    id: 'U',
+    id: 'T',
     title: 'Spontaneous pain',
     text: 'Do you experience spontaneous pain?',
     help: 'Spontaneous pain is more consistent with irreversible pulpitis.',
@@ -86,7 +76,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
 
   // V
   DiagnosisQuestion(
-    id: 'V',
+    id: 'U',
     title: 'Pain affects sleep',
     text: 'Does the pain wake you up at night or interfere with sleep?',
     help: 'Night pain often accompanies severe pulpal inflammation.',
@@ -95,7 +85,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
 
   // W
   DiagnosisQuestion(
-    id: 'W',
+    id: 'V',
     title: 'Pain quality',
     text: 'Does the pain have any of the following qualities?',
     help: 'Pain quality contributes to the pulpal/periapical differential.',
@@ -104,7 +94,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
 
   // X
   DiagnosisQuestion(
-    id: 'X',
+    id: 'W',
     title: 'Referred pain',
     text:
         'Do you also feel the pain in other areas like jawbone, ear, temple, eye, or cheek?',
@@ -121,11 +111,11 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     help:
         'You can select multiple causes. If you are not sure, select "Not sure".',
     options: [
-      'Abrasion',
-      'Attrition',
+      'Abrasion, Attrition',
       'Caries',
       'Congenital anomalies (Dens invaginatus/evaginatus; palatal/lingual grooves)',
       'Crack',
+      'Dentin Hypersensitivity (Abrasion, Attrition, and Gingival Recession)',
       'External cervical resorption',
       'Non-endodontic pain',
       'Periodontal disease',

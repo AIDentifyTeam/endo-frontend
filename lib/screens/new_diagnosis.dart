@@ -104,7 +104,6 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         _chiefComplaintTextController.text = ccText;
       }
 
-      // Editing: we don't auto-run etiology fetch; user can still go Next
       setState(() {});
     } catch (e) {
       if (!mounted) return;
@@ -323,7 +322,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         if (!mounted) return;
 
         // ➜ After saving, go to Diagnosis Result for this visit
-        final result = await Navigator.push(
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => DiagnosisResultScreen(
@@ -339,32 +338,56 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         return;
       }
 
-      // ---- CREATE FLOW (unchanged) ----
-      final visitId = await ApiService().createVisit(
+      // ---- CREATE FLOW (compatible with visitId) ----
+
+      // build a clean answers map
+      final Map<String, dynamic> cleanedAnswers = _answers.map(
+        (k, v) => MapEntry(k, v is List ? v : (v?.toString() ?? '')),
+      );
+
+      // do NOT send read-only fields
+      final created = await ApiService().createVisit(
         patientId: _patient.id,
         toothNumber: _toothNumberController.text,
-        answers: _answers.map((k, v) => MapEntry(k, v is List ? v : v.toString())),
-        pulpDiagnosis: _answers['Pulp Diagnosis'] ?? '',
-        periapicalDisease: _answers['Periapical Disease'] ?? '',
-        etiology: _answers['Etiology'] ?? '',
+        answers: cleanedAnswers,
         toothImage: _selectedImage,
         webImageBytes: _webImageBytes,
       );
 
-      final result = await Navigator.push(
+      // accept both shapes: int id OR full JSON body
+      late final int visitId;
+      if (created is int) {
+        visitId = created as int;
+      } else if (created is Map && created['id'] != null) {
+        final raw = created['id'];
+        if (raw is int) {
+          visitId = raw;
+        } else if (raw is num) {
+          visitId = raw.toInt();
+        } else if (raw is String) {
+          visitId = int.tryParse(raw) ??
+              (throw Exception('Create visit: id is not a number'));
+        } else {
+          throw Exception('Create visit: unexpected id type');
+        }
+      } else {
+        throw Exception('Create visit returned unexpected payload');
+      }
+
+      if (!mounted) return;
+
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => DiagnosisResultScreen(
-            visitId: visitId,
+            visitId: visitId, // screen fetches the visit by ID
             patientName: '${_patient.firstName} ${_patient.lastName}',
           ),
         ),
       );
 
       if (!mounted) return;
-      if (result == 'refresh') {
-        Navigator.pop(context, 'refresh');
-      }
+      Navigator.pop(context, 'refresh');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -374,7 +397,6 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
       if (mounted) setState(() => _submitting = false);
     }
   }
-
 
   // ==================== UI ====================
   @override
