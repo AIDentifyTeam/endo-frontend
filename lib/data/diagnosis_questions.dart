@@ -89,7 +89,8 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     title: 'Pain quality',
     text: 'Does the pain have any of the following qualities?',
     help: 'Pain quality contributes to the pulpal/periapical differential.',
-    options: ['No', 'Sharp', 'Throbbing', 'Dull'],
+    options: ['Not Defined', 'Sharp', 'Throbbing', 'Dull'],
+    isOptional: true,
   ),
 
   // X

@@ -10,6 +10,7 @@ import 'package:endo_frontend/widgets/patient_info_card.dart';
 import 'package:endo_frontend/models/patient.dart';
 import 'package:endo_frontend/screens/diagnosis_result.dart';
 import 'package:endo_frontend/widgets/global_header.dart';
+import 'package:endo_frontend/widgets/tooth_picker.dart';
 import 'package:endo_frontend/widgets/main_drawer.dart';
 import 'package:endo_frontend/data/diagnosis_questions.dart';
 import 'package:endo_frontend/services/api_service.dart';
@@ -24,7 +25,8 @@ class NewDiagnosisScreen extends StatefulWidget {
 class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _toothNumberController = TextEditingController();
-  final TextEditingController _chiefComplaintTextController = TextEditingController();
+  final TextEditingController _chiefComplaintTextController =
+      TextEditingController();
 
   XFile? _selectedImage;
   Uint8List? _webImageBytes;
@@ -34,7 +36,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   bool _submitting = false;
   String? _toothNumberError;
+  String? _selectedTooth;
   late Patient _patient;
+  ToothNumberingSystem _numberingSystem = ToothNumberingSystem.fdi;
 
   // Steps: 0 = Patient History, 1 = Clinical & Radiographic
   int _currentStep = 0;
@@ -75,9 +79,12 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         _loadForEdit(_visitId!);
       }
     } else {
-      // Fallback – you can also assert here
+      // Fallback - you can also assert here
       throw ArgumentError('Invalid arguments for NewDiagnosisScreen');
     }
+
+    final initialTooth = _toothNumberController.text.trim();
+    _selectedTooth = initialTooth.isEmpty ? null : initialTooth;
   }
 
   Future<void> _loadForEdit(int visitId) async {
@@ -104,14 +111,25 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         _chiefComplaintTextController.text = ccText;
       }
 
-      setState(() {});
+      setState(() {
+        final value = _toothNumberController.text.trim();
+        _selectedTooth = value.isEmpty ? null : value;
+      });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load visit: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load visit: $e')));
       // Still allow editing of whatever we have.
     }
+  }
+
+  void _onToothSelected(String toothNumber) {
+    setState(() {
+      _selectedTooth = toothNumber;
+      _toothNumberController.text = toothNumber;
+      _toothNumberError = null;
+    });
   }
 
   @override
@@ -160,7 +178,8 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     return diagnosisQuestions.where((q) => !idsHistory.contains(q.id)).toList();
   }
 
-  List<DiagnosisQuestion> get _activeQuestions => _onHistory ? _historyQuestions : _evaluationQuestions;
+  List<DiagnosisQuestion> get _activeQuestions =>
+      _onHistory ? _historyQuestions : _evaluationQuestions;
 
   // -------------------- Validation for Next --------------------
   bool _historyValid() {
@@ -233,6 +252,12 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     setState(() {
       _answers.clear();
       _chiefComplaintTextController.clear();
+      _selectedTooth = null;
+      _toothNumberController.clear();
+      _toothNumberError = null;
+      _selectedImage = null;
+      _webImageBytes = null;
+      _removeExistingImage = false;
     });
   }
 
@@ -249,13 +274,16 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   // -------------------- Next from Page-1 (fetch etiologies) -------------
   Future<void> _onNextFromHistory() async {
-    if (_toothNumberController.text.trim().isEmpty) {
-      setState(() => _toothNumberError = 'Tooth number is required');
-      return;
-    } else {
+    final controllerValue = _toothNumberController.text.trim();
+    if (controllerValue.isEmpty) {
+      final fallback = _selectedTooth ?? '0';
+      _selectedTooth ??= fallback;
+      _toothNumberController.text = fallback;
+    }
+    if (_toothNumberError != null) {
       setState(() => _toothNumberError = null);
     }
-    // If P != Yes → skip filtering and allow all options
+    // If P != Yes -> skip filtering and allow all options
     if (!_pIsYes) {
       // wipe Q..X before moving
       for (final id in _qToXIds) {
@@ -271,33 +299,44 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
     try {
       final res = await ApiService().getEtiologiesFromPage1(payload);
-      final backendList = (res['etiologies'] as List<dynamic>? ?? const [])
-          .map((e) => e.toString())
-          .toList();
+      final backendList =
+          (res['etiologies'] as List<dynamic>? ?? const [])
+              .map((e) => e.toString())
+              .toList();
 
-      final uiOptions = _findById('etiology_assessment')?.options ?? const <String>[];
+      final uiOptions =
+          _findById('etiology_assessment')?.options ?? const <String>[];
       final allowed = backendList.toSet().intersection(uiOptions.toSet());
 
       setState(() {
         _enabledEtiologies = allowed.isEmpty ? null : allowed;
         final q = _findById('etiology_assessment');
         if (q != null) {
-          final current = List<String>.from((_answers[q.id] as List?) ?? const []);
-          current.removeWhere((opt) =>
-              opt != 'Not sure' && _enabledEtiologies != null && !_enabledEtiologies!.contains(opt));
+          final current = List<String>.from(
+            (_answers[q.id] as List?) ?? const [],
+          );
+          current.removeWhere(
+            (opt) =>
+                opt != 'Not sure' &&
+                _enabledEtiologies != null &&
+                !_enabledEtiologies!.contains(opt),
+          );
           _answers[q.id] = current;
         }
       });
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not fetch etiology suggestions. Showing all.')),
+        const SnackBar(
+          content: Text('Could not fetch etiology suggestions. Showing all.'),
+        ),
       );
       setState(() => _enabledEtiologies = null); // allow all on failure
     } finally {
-      if (!mounted) return;
-      setState(() => _loadingEtiologies = false);
-      _goToStep(1);
+      if (mounted) {
+        setState(() => _loadingEtiologies = false);
+        _goToStep(1);
+      }
     }
   }
 
@@ -312,7 +351,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
           visitId: _visitId!,
           fields: {
             'tooth_number': _toothNumberController.text,
-            'answers': _answers.map((k, v) => MapEntry(k, v is List ? v : v.toString())),
+            'answers': _answers.map(
+              (k, v) => MapEntry(k, v is List ? v : v.toString()),
+            ),
           },
           toothImage: _selectedImage,
           webImageBytes: _webImageBytes,
@@ -321,14 +362,15 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
         if (!mounted) return;
 
-        // ➜ After saving, go to Diagnosis Result for this visit
+        // -> After saving, go to Diagnosis Result for this visit
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => DiagnosisResultScreen(
-              visitId: _visitId!,
-              patientName: '${_patient.firstName} ${_patient.lastName}',
-            ),
+            builder:
+                (_) => DiagnosisResultScreen(
+                  visitId: _visitId!,
+                  patientName: '${_patient.firstName} ${_patient.lastName}',
+                ),
           ),
         );
 
@@ -346,7 +388,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
       );
 
       // do NOT send read-only fields
-      final created = await ApiService().createVisit(
+      final dynamic created = await ApiService().createVisit(
         patientId: _patient.id,
         toothNumber: _toothNumberController.text,
         answers: cleanedAnswers,
@@ -355,23 +397,24 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
       );
 
       // accept both shapes: int id OR full JSON body
-      late final int visitId;
-      if (created is int) {
-        visitId = created as int;
-      } else if (created is Map && created['id'] != null) {
-        final raw = created['id'];
-        if (raw is int) {
-          visitId = raw;
-        } else if (raw is num) {
-          visitId = raw.toInt();
-        } else if (raw is String) {
-          visitId = int.tryParse(raw) ??
-              (throw Exception('Create visit: id is not a number'));
-        } else {
-          throw Exception('Create visit: unexpected id type');
-        }
-      } else {
+      final dynamic rawVisitId =
+          (created is Map<String, dynamic>) ? created['id'] : created;
+
+      if (rawVisitId == null) {
         throw Exception('Create visit returned unexpected payload');
+      }
+
+      late final int visitId;
+      if (rawVisitId is int) {
+        visitId = rawVisitId;
+      } else if (rawVisitId is num) {
+        visitId = rawVisitId.toInt();
+      } else if (rawVisitId is String) {
+        visitId =
+            int.tryParse(rawVisitId) ??
+            (throw Exception('Create visit: id is not a number'));
+      } else {
+        throw Exception('Create visit: unexpected id type');
       }
 
       if (!mounted) return;
@@ -379,10 +422,11 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => DiagnosisResultScreen(
-            visitId: visitId, // screen fetches the visit by ID
-            patientName: '${_patient.firstName} ${_patient.lastName}',
-          ),
+          builder:
+              (_) => DiagnosisResultScreen(
+                visitId: visitId, // screen fetches the visit by ID
+                patientName: '${_patient.firstName} ${_patient.lastName}',
+              ),
         ),
       );
 
@@ -390,9 +434,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
       Navigator.pop(context, 'refresh');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to submit: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to submit: $e")));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -415,9 +459,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               delegate: _SliverHeaderDelegate(
                 child: AppHeader(
                   title: _isEdit ? 'Edit Diagnosis' : 'New Diagnosis',
-                  subtitle: _isEdit
-                      ? 'Update answers and attachments for this visit.'
-                      : 'Record patient case step-by-step',
+                  subtitle:
+                      _isEdit
+                          ? 'Update answers and attachments for this visit.'
+                          : 'Record patient case step-by-step',
                   icon: Icons.medical_services,
                 ),
               ),
@@ -440,10 +485,14 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
             // Page header
             SliverToBoxAdapter(
               child: _buildPageHeader(
-                title: _onHistory ? 'Patient History' : 'Clinical & Radiographic Evaluation',
-                subtitle: _onHistory
-                    ? 'Answer a few short questions about symptoms and history.'
-                    : 'Record clinical tests and radiographic findings.',
+                title:
+                    _onHistory
+                        ? 'Patient History'
+                        : 'Clinical & Radiographic Evaluation',
+                subtitle:
+                    _onHistory
+                        ? 'Answer a few short questions about symptoms and history.'
+                        : 'Record clinical tests and radiographic findings.',
               ),
             ),
 
@@ -458,7 +507,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               ),
             ),
 
-            // Tooth & Photo — Page 1 only
+            // Tooth & Photo - Page 1 only
             if (_onHistory)
               SliverToBoxAdapter(
                 child: Column(
@@ -483,19 +532,16 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
             // Questions for active step
             SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final q = _activeQuestions[index];
-                  final isMulti = q.id == 'etiology_assessment';
-                  return _buildQuestionCard(
-                    q,
-                    isMulti: isMulti,
-                    displayIndex: index + 1,
-                    totalCount: totalQuestions,
-                  );
-                },
-                childCount: totalQuestions,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final q = _activeQuestions[index];
+                final isMulti = q.id == 'etiology_assessment';
+                return _buildQuestionCard(
+                  q,
+                  isMulti: isMulti,
+                  displayIndex: index + 1,
+                  totalCount: totalQuestions,
+                );
+              }, childCount: totalQuestions),
             ),
 
             // Navigation buttons
@@ -509,13 +555,17 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                     const Spacer(),
                     _onHistory
                         ? _buildNavigationButton(
-                            _loadingEtiologies ? 'Loading…' : 'Next',
-                            _historyValid() && !_loadingEtiologies ? _onNextFromHistory : null,
-                          )
+                          _loadingEtiologies ? 'Loading...' : 'Next',
+                          _historyValid() && !_loadingEtiologies
+                              ? _onNextFromHistory
+                              : null,
+                        )
                         : _buildNavigationButton(
-                            _submitting ? (_isEdit ? 'Saving…' : 'Submitting…') : (_isEdit ? 'Save changes' : 'Submit'),
-                            _submitting ? null : _submitDiagnosis,
-                          ),
+                          _submitting
+                              ? (_isEdit ? 'Saving...' : 'Submitting...')
+                              : (_isEdit ? 'Save changes' : 'Submit'),
+                          _submitting ? null : _submitDiagnosis,
+                        ),
                   ],
                 ),
               ),
@@ -533,9 +583,14 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF111827),
+            ),
+          ),
           const SizedBox(height: 6),
           Text(
             subtitle,
@@ -549,6 +604,11 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   // **Only shown on Page 1**
   Widget _buildToothAndPhotoCard() {
+    final selectedLabel =
+        _selectedTooth == null
+            ? 'Tap a tooth to select.'
+            : 'Selected tooth: ${_selectedTooth!}';
+
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -560,17 +620,91 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Enter Tooth Number",
+              'Select Tooth',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _toothNumberController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                hintText: "e.g., 24",
-                errorText: _toothNumberError,
+            const SizedBox(height: 8),
+            Text(
+              selectedLabel,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text(
+                  'Numbering system:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('FDI'),
+                        selected: _numberingSystem == ToothNumberingSystem.fdi,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(
+                              () => _numberingSystem = ToothNumberingSystem.fdi,
+                            );
+                          }
+                        },
+                        selectedColor: const Color(0xFF7E22CE),
+                        labelStyle: TextStyle(
+                          color:
+                              _numberingSystem == ToothNumberingSystem.fdi
+                                  ? Colors.white
+                                  : const Color(0xFF1E293B),
+                        ),
+                      ),
+                      ChoiceChip(
+                        label: const Text('UTN'),
+                        selected: _numberingSystem == ToothNumberingSystem.utn,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(
+                              () => _numberingSystem = ToothNumberingSystem.utn,
+                            );
+                          }
+                        },
+                        selectedColor: const Color(0xFF7E22CE),
+                        labelStyle: TextStyle(
+                          color:
+                              _numberingSystem == ToothNumberingSystem.utn
+                                  ? Colors.white
+                                  : const Color(0xFF1E293B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ToothPicker(
+              selectedTooth: _selectedTooth,
+              onChanged: _onToothSelected,
+              numberingSystem: _numberingSystem,
+              // variantMode: ToothVariantMode.anatomical, // <ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â remove; not used with SVG version
+            ),
+            const SizedBox(height: 8),
+            Visibility(
+              visible: _toothNumberError != null,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: Text(
+                _toothNumberError ?? '',
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -579,16 +713,22 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                 ElevatedButton.icon(
                   onPressed: _pickImage,
                   icon: const Icon(Icons.photo_outlined),
-                  label: Text(_isEdit ? "Replace / Upload Photo" : "Upload Tooth Photo"),
+                  label: Text(
+                    _isEdit ? 'Replace / Upload Photo' : 'Upload Tooth Photo',
+                  ),
                 ),
                 const SizedBox(width: 12),
-                if (_isEdit && _existingImageUrl != null && _selectedImage == null)
+                if (_isEdit &&
+                    _existingImageUrl != null &&
+                    _selectedImage == null)
                   Expanded(
                     child: CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Remove existing photo'),
                       value: _removeExistingImage,
-                      onChanged: (v) => setState(() => _removeExistingImage = v ?? false),
+                      onChanged:
+                          (v) =>
+                              setState(() => _removeExistingImage = v ?? false),
                       controlAffinity: ListTileControlAffinity.leading,
                     ),
                   ),
@@ -626,7 +766,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Question $displayIndex/$totalCount', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+            Text(
+              'Question $displayIndex/$totalCount',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
             Row(
               children: [
                 Expanded(
@@ -646,7 +789,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(q.text, style: const TextStyle(fontSize: 16, color: Colors.black87)),
+            Text(
+              q.text,
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
+            ),
             const SizedBox(height: 12),
 
             if (isMulti)
@@ -656,8 +802,12 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
                 // filter rule: if _enabledEtiologies is null => allow all; always allow "Not sure"
                 final allowedByFilter =
-                    _enabledEtiologies == null || option == 'Not sure' || _enabledEtiologies!.contains(option);
-                final isEnabled = allowedByFilter && (!notSureSelected || option == 'Not sure');
+                    _enabledEtiologies == null ||
+                    option == 'Not sure' ||
+                    _enabledEtiologies!.contains(option);
+                final isEnabled =
+                    allowedByFilter &&
+                    (!notSureSelected || option == 'Not sure');
 
                 return CheckboxListTile(
                   title: Text(option),
@@ -665,7 +815,9 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                   value: selected.contains(option),
                   onChanged: (selectedVal) {
                     setState(() {
-                      final current = List<String>.from((_answers[q.id] as List?) ?? const []);
+                      final current = List<String>.from(
+                        (_answers[q.id] as List?) ?? const [],
+                      );
                       if (selectedVal == true) {
                         if (option == 'Not sure') {
                           _answers[q.id] = ['Not sure'];
@@ -683,20 +835,22 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                 );
               })
             else
-              ...q.options.map((option) => RadioListTile(
-                    title: Text(option),
-                    value: option,
-                    groupValue: _answers[q.id],
-                    onChanged: (val) {
-                      setState(() {
-                        _answers[q.id] = val;
-                        if (isChiefComplaint && val == 'No') {
-                          _answers.remove('chief_complaint_text');
-                          _chiefComplaintTextController.clear();
-                        }
-                      });
-                    },
-                  )),
+              ...q.options.map(
+                (option) => RadioListTile(
+                  title: Text(option),
+                  value: option,
+                  groupValue: _answers[q.id],
+                  onChanged: (val) {
+                    setState(() {
+                      _answers[q.id] = val;
+                      if (isChiefComplaint && val == 'No') {
+                        _answers.remove('chief_complaint_text');
+                        _chiefComplaintTextController.clear();
+                      }
+                    });
+                  },
+                ),
+              ),
 
             if (isChiefComplaint && _answers[q.id] == 'Yes') ...[
               const SizedBox(height: 8),
@@ -754,14 +908,15 @@ class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => 120;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Material(
-      color: const Color(0xFFF8FAFC),
-      elevation: 4,
-      child: child,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Material(color: const Color(0xFFF8FAFC), elevation: 4, child: child);
   }
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => true;
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>
+      true;
 }
