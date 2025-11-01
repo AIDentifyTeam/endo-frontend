@@ -165,17 +165,27 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     if (p != null) out.add(p);
 
     if (_pIsYes) {
+      // Add required first, then optional at the end
+      final requiredQs = <DiagnosisQuestion>[];
+      final optionalQs = <DiagnosisQuestion>[];
       for (final id in _qToXIds) {
         final q = _findById(id);
-        if (q != null) out.add(q);
+        if (q != null) {
+          (q.isOptional ? optionalQs : requiredQs).add(q);
+        }
       }
+      out..addAll(requiredQs)..addAll(optionalQs);
     }
     return out;
   }
 
   List<DiagnosisQuestion> get _evaluationQuestions {
     final idsHistory = <String>{_chiefId, _pId, ..._qToXIds};
-    return diagnosisQuestions.where((q) => !idsHistory.contains(q.id)).toList();
+    final eval = diagnosisQuestions.where((q) => !idsHistory.contains(q.id)).toList();
+    // Move optional to the end
+    final requiredQs = eval.where((q) => !q.isOptional).toList();
+    final optionalQs = eval.where((q) => q.isOptional).toList();
+    return [...requiredQs, ...optionalQs];
   }
 
   List<DiagnosisQuestion> get _activeQuestions =>
@@ -198,7 +208,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     if (_pIsYes) {
       for (final id in _qToXIds) {
         final q = _findById(id);
-        if (q != null) {
+        if (q != null && !q.isOptional) {
           final val = _answers[q.id];
           if (val == null || (val is String && val.isEmpty)) return false;
         }
@@ -272,8 +282,27 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     return out;
   }
 
+  // Ensure overrides held before any compute/submit
+  void _normalizeAnswersBeforeSubmit() {
+    _enforcePercussionOverrides();
+  }
+
+  // Some clinical rules require keeping answers consistent.
+  // Currently only a placeholder for percussion-related overrides.
+  // If specific business logic is needed, add it here.
+  void _enforcePercussionOverrides() {
+    // Example placeholder: if chief complaint is 'No', clear its text.
+    final cc = _answers[_chiefId];
+    if (cc == 'No') {
+      _answers.remove('chief_complaint_text');
+      _chiefComplaintTextController.clear();
+    }
+    // Add percussion/biting related normalization here as requirements evolve.
+  }
+
   // -------------------- Next from Page-1 (fetch etiologies) -------------
   Future<void> _onNextFromHistory() async {
+    _normalizeAnswersBeforeSubmit();
     final controllerValue = _toothNumberController.text.trim();
     if (controllerValue.isEmpty) {
       final fallback = _selectedTooth ?? '0';
@@ -345,6 +374,7 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     setState(() => _submitting = true);
 
     try {
+      _normalizeAnswersBeforeSubmit();
       if (_isEdit && _visitId != null) {
         // EDIT: save changes
         await ApiService().updateVisit(
@@ -847,6 +877,8 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                         _answers.remove('chief_complaint_text');
                         _chiefComplaintTextController.clear();
                       }
+                      // Enforce percussion overrides biting rule
+                      _enforcePercussionOverrides();
                     });
                   },
                 ),

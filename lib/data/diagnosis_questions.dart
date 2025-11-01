@@ -45,7 +45,8 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     text: 'Does cold temperature trigger or aggravate the pain?',
     help:
         'Cold sensitivity pattern helps differentiate reversible vs. irreversible pulpitis.',
-    options: ['No', 'For a few seconds', 'Longer than few seconds'],
+    // Reorder so 'No' is last for consistency
+    options: ['For a few seconds', 'Longer than few seconds', 'No'],
   ),
 
   // R
@@ -54,7 +55,8 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     title: 'Cold alleviates pain',
     text: 'Does cold temperature alleviate the pain?',
     help: 'Pain relief with cold can be associated with acute pulpitis.',
-    options: ['No', 'For a few seconds', 'Longer than few seconds'],
+    // Reorder so 'No' is last for consistency
+    options: ['For a few seconds', 'Longer than few seconds', 'No'],
   ),
 
   DiagnosisQuestion(
@@ -81,6 +83,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
     text: 'Does the pain wake you up at night or interfere with sleep?',
     help: 'Night pain often accompanies severe pulpal inflammation.',
     options: ['Yes', 'No'],
+    isOptional: true,
   ),
 
   // W
@@ -101,6 +104,7 @@ final List<DiagnosisQuestion> diagnosisQuestions = [
         'Do you also feel the pain in other areas like jawbone, ear, temple, eye, or cheek?',
     help: 'Referred pain suggests broader neural involvement.',
     options: ['Yes', 'No'],
+    isOptional: true,
   ),
 
   // ------------------ PAGE 2: CLINICAL & RADIOGRAPHIC ------------------
