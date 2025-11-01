@@ -151,7 +151,7 @@ class ToothPicker extends StatelessWidget {
     final theme = Theme.of(context);
     final lightSurface =
         theme.brightness == Brightness.dark
-            ? theme.colorScheme.surfaceVariant.withOpacity(0.35)
+            ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.35)
             : const Color(0xFFF8FAFC);
     final lineColor = const Color(0xFFE2E8F0);
 

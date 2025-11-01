@@ -171,7 +171,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                             ),
 
                             _buildSectionCard(
-                              title: 'Diagnosis Result',
+                              title: 'Pulp Diagnosis',
                               content: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: _buildDiagnosisCards(),
@@ -323,7 +323,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  pulpDiagnosis.isEmpty ? 'N/A' : pulpDiagnosis,
+                  pulpDiagnosis.isEmpty ? 'Pulp Diagnosis: N/A' : 'Pulp Diagnosis: ' + pulpDiagnosis,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
