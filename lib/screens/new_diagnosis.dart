@@ -285,24 +285,6 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     // Add percussion/biting related normalization here as requirements evolve.
   }
 
-  // Ensure overrides held before any compute/submit
-  void _normalizeAnswersBeforeSubmit() {
-    _enforcePercussionOverrides();
-  }
-
-  // Some clinical rules require keeping answers consistent.
-  // Currently only a placeholder for percussion-related overrides.
-  // If specific business logic is needed, add it here.
-  void _enforcePercussionOverrides() {
-    // Example placeholder: if chief complaint is 'No', clear its text.
-    final cc = _answers[_chiefId];
-    if (cc == 'No') {
-      _answers.remove('chief_complaint_text');
-      _chiefComplaintTextController.clear();
-    }
-    // Add percussion/biting related normalization here as requirements evolve.
-  }
-
   // -------------------- Next from Page-1 (fetch etiologies) -------------
   Future<void> _onNextFromHistory() async {
     _normalizeAnswersBeforeSubmit();
