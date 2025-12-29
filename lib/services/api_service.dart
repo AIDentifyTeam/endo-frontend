@@ -15,7 +15,7 @@ import 'package:endo_frontend/app_navigator.dart';
 import 'package:endo_frontend/routes.dart';
 
 const String baseUrl = 'https://aidentify.app';
-// const String baseUrl = 'http://localhost:8000';
+// const String baseUrl = 'http://127.0.0.1:8000';
 
 // Global toast helper (uses navigatorKey context)
 void _notify(String msg) {
@@ -736,4 +736,39 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> getEtiologiesFromPage1(
+    Map<String, String> page1Answers,
+  ) async {
+    final resp = await _sendAuthorized(
+      (token) => http.post(
+        Uri.parse('$apiUrl/etiologies/'), // NOTE: trailing slash
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'answers': page1Answers}),
+      ),
+    );
+
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      return {
+        'etiologies': (data['etiologies'] as List<dynamic>? ?? const [])
+            .map((e) => e.toString())
+            .toList(),
+        'ruleset_version': (data['ruleset_version'] ?? '').toString(),
+      };
+    }
+
+    // bubble up server/validation errors cleanly
+    if (resp.statusCode == 400) {
+      try {
+        final err = jsonDecode(resp.body);
+        if (err is Map && err['detail'] is String) {
+          throw ApiException(err['detail']);
+        }
+      } catch (_) {}
+    }
+    throw ApiException('Failed to fetch etiologies (${resp.statusCode}): ${resp.body}');
+  }
 }

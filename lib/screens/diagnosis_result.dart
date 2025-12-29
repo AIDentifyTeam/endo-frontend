@@ -323,7 +323,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  pulpDiagnosis.isEmpty ? 'Pulp Diagnosis: N/A' : 'Pulp Diagnosis: $pulpDiagnosis',
+                  pulpDiagnosis.isEmpty ? 'Pulp Diagnosis: N/A' : 'Pulp Diagnosis: ' + pulpDiagnosis,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),

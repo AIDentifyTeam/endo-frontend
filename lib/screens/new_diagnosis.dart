@@ -50,6 +50,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
 
   bool get _onHistory => _currentStep == 0;
 
+  // Backend-driven etiology filtering state
+  Set<String>? _enabledEtiologies; // null => allow all (no filtering)
+  bool _loadingEtiologies = false;
+
   // ----------- Edit mode wiring -----------
   bool _isEdit = false;
   int? _visitId;
@@ -267,22 +271,15 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     });
   }
 
-  // Ensure overrides held before any compute/submit
-  void _normalizeAnswersBeforeSubmit() {
-    _enforcePercussionOverrides();
-  }
-
-  // Some clinical rules require keeping answers consistent.
-  // Currently only a placeholder for percussion-related overrides.
-  // If specific business logic is needed, add it here.
-  void _enforcePercussionOverrides() {
-    // Example placeholder: if chief complaint is 'No', clear its text.
-    final cc = _answers[_chiefId];
-    if (cc == 'No') {
-      _answers.remove('chief_complaint_text');
-      _chiefComplaintTextController.clear();
+  // -------------------- Build Page-1 payload for API --------------------
+  Map<String, String> _buildPage1Payload() {
+    final ids = <String>[_pId, ..._qToXIds]; // only P..X
+    final Map<String, String> out = {};
+    for (final id in ids) {
+      final v = _answerValueForId(id);
+      if (v != null && v.isNotEmpty) out[id] = v;
     }
-    // Add percussion/biting related normalization here as requirements evolve.
+    return out;
   }
 
   // -------------------- Next from Page-1 (fetch etiologies) -------------
@@ -297,14 +294,61 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
     if (_toothNumberError != null) {
       setState(() => _toothNumberError = null);
     }
-
-    // If P != Yes -> wipe Q..X before moving (they were not shown)
+    // If P != Yes -> skip filtering and allow all options
     if (!_pIsYes) {
+      // wipe Q..X before moving
       for (final id in _qToXIds) {
         _answers.remove(id);
       }
+      setState(() => _enabledEtiologies = null);
+      _goToStep(1);
+      return;
     }
-    _goToStep(1);
+
+    final payload = _buildPage1Payload();
+    setState(() => _loadingEtiologies = true);
+
+    try {
+      final res = await ApiService().getEtiologiesFromPage1(payload);
+      final backendList =
+          (res['etiologies'] as List<dynamic>? ?? const [])
+              .map((e) => e.toString())
+              .toList();
+
+      final uiOptions =
+          _findById('etiology_assessment')?.options ?? const <String>[];
+      final allowed = backendList.toSet().intersection(uiOptions.toSet());
+
+      setState(() {
+        _enabledEtiologies = allowed.isEmpty ? null : allowed;
+        final q = _findById('etiology_assessment');
+        if (q != null) {
+          final current = List<String>.from(
+            (_answers[q.id] as List?) ?? const [],
+          );
+          current.removeWhere(
+            (opt) =>
+                opt != 'Not sure' &&
+                _enabledEtiologies != null &&
+                !_enabledEtiologies!.contains(opt),
+          );
+          _answers[q.id] = current;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not fetch etiology suggestions. Showing all.'),
+        ),
+      );
+      setState(() => _enabledEtiologies = null); // allow all on failure
+    } finally {
+      if (mounted) {
+        setState(() => _loadingEtiologies = false);
+        _goToStep(1);
+      }
+    }
   }
 
   // -------------------- Submit / Save --------------------
@@ -523,8 +567,10 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                     const Spacer(),
                     _onHistory
                         ? _buildNavigationButton(
-                          'Next',
-                          _historyValid() ? _onNextFromHistory : null,
+                          _loadingEtiologies ? 'Loading...' : 'Next',
+                          _historyValid() && !_loadingEtiologies
+                              ? _onNextFromHistory
+                              : null,
                         )
                         : _buildNavigationButton(
                           _submitting
@@ -766,7 +812,14 @@ class _NewDiagnosisScreenState extends State<NewDiagnosisScreen> {
                 final selected = (_answers[q.id] as List?) ?? const [];
                 final notSureSelected = selected.contains('Not sure');
 
-                final isEnabled = !notSureSelected || option == 'Not sure';
+                // filter rule: if _enabledEtiologies is null => allow all; always allow "Not sure"
+                final allowedByFilter =
+                    _enabledEtiologies == null ||
+                    option == 'Not sure' ||
+                    _enabledEtiologies!.contains(option);
+                final isEnabled =
+                    allowedByFilter &&
+                    (!notSureSelected || option == 'Not sure');
 
                 return CheckboxListTile(
                   title: Text(option),
