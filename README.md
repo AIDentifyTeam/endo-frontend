@@ -2,7 +2,7 @@
 
 AIdentify EndoApp — Flutter frontend for the AIdentify healthcare platform.
 
-This app implements a two-page diagnostic flow (Patient History → Clinical & Radiographic). It talks to the Django REST API via JWT and supports secure media uploads.
+This app implements a two-page diagnostic flow (Patient History → Clinical & Radiographic) with rule-based etiology filtering. It talks to the Django REST API via JWT and supports secure media uploads.
 
 ## Highlights
 - Cross‑platform: Web (primary), plus Android/iOS/Desktop during development as needed.
