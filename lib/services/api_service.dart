@@ -14,8 +14,8 @@ import 'package:endo_frontend/screens/notifications.dart';
 import 'package:endo_frontend/app_navigator.dart';
 import 'package:endo_frontend/routes.dart';
 
-// const String baseUrl = 'https://aidentify.app';
-const String baseUrl = 'http://localhost:8000';
+const String baseUrl = 'https://aidentify.app';
+// const String baseUrl = 'http://localhost:8000';
 
 // Global toast helper (uses navigatorKey context)
 void _notify(String msg) {
